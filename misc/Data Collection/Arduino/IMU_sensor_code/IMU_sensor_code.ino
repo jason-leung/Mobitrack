@@ -9,6 +9,12 @@ int16_t ax,ay,az, gx, gy, gz;
 void setup() {
     Wire.begin();
     accelgyro.initialize();
+    accelgyro.setXGyroOffset(77);
+    accelgyro.setYGyroOffset(34);
+    accelgyro.setZGyroOffset(-24);
+    accelgyro.setXAccelOffset(-2390);
+    accelgyro.setYAccelOffset(-482);
+    accelgyro.setZAccelOffset(1188);
     Serial.begin(9600);
 }
 
@@ -19,7 +25,7 @@ void loop() {
     // Print data to serial to be read by Matlab
     // Format:
     // ax, ay, az, gx, gy, gz
-    
+
     Serial.println("");
     Serial.print(ax);
     Serial.print(",");
