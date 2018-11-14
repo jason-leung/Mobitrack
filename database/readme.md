@@ -12,5 +12,5 @@ For Mobitrack, MySQL is used due to multiple reasons
 2. Things to Do:
 - System Requirements:
 	- MySQL 
-	- MySQL-python
+	- MySQL Connector
 	
