@@ -39,5 +39,5 @@ void loop() {
     Serial.print(",");
     Serial.print(gz);
 
-    delay(10);
+    //delay(10);
 }
