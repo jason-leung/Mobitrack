@@ -1,31 +1,17 @@
-%%
-close all, clear all, clc
+function [outputArg1,outputArg2] = preprocessData(data, createPlots)
 
-%% Load data
-cd ('D:\OneDrive\School\4A\BME 461\Mobitrack\data\Nov16');
-% filename = 'roll_test.mat';
-filename = 'RA_continuous';
+if nargin < 2
+    createPlots = 0;
+end
 
-% filename = 'yaw_test.mat';
-% filename = 'stationary';
 
-data = load(strcat(filename, '.mat'));
 t = data.time - data.time(1);
-dt = diff(t);
 Ax = data.ax; Ay = data.ay; Az = data.az;
 Gx = data.gx; Gy = data.gy; Gz = data.gz;
+dt = diff(t);
 
-%% Plot FFT
-% Fs = 1/mean(dt);
-% X = data.ax; L = length(X); Y = fft(X);
-% P2 = abs(Y/L); P1 = P2(1:L/2+1);
-% P1(2:end-1) = 2*P1(2:end-1);
-% f = Fs*(0:(L/2))/L;
-% 
-% figure, plot(f,P1), title('Single-Sided Amplitude Spectrum of X(t)'),
-% xlabel('f (Hz)'), ylabel('|P1(f)|')
 
-%% Pre-processing: remove high frequency component
+% Pre-processing: remove high frequency component
 fc = exp(-1); % normalized frequency
 fs = 1/mean(dt); % sampling frequency [Hz]
 
@@ -155,7 +141,7 @@ end
 % Convert all estimates to degrees
 % roll_est_kal = roll_est_kal * 180.0 / pi; pitch_est_kal = pitch_est_kal * 180.0 / pi;
 
-%% Plots
+if (createPlots)
 figure,
 subplot(3, 1, 1);
 plot(t, roll_est_comp, t, roll_est_acc, t, roll_est_gyr, t, roll_est_kal)
@@ -177,3 +163,6 @@ legend('Gyro')
 xlabel('Time (s)')
 ylabel('Angle (Degrees)')
 title('Yaw')
+end
+end
+
