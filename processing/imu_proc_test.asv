@@ -4,10 +4,10 @@ close all, clear all, clc
 %% Load data
 cd ('D:\OneDrive\School\4A\BME 461\Mobitrack\data\Nov16');
 % filename = 'roll_test.mat';
-filename = 'RA_continuous';
+filename = 'RA_extended_flx';
 
 % filename = 'yaw_test.mat';
-% filename = 'stationary';
+% filename = 'stationary.mat';
 
 data = load(strcat(filename, '.mat'));
 t = data.time - data.time(1);
@@ -26,13 +26,15 @@ Gx = data.gx; Gy = data.gy; Gz = data.gz;
 % xlabel('f (Hz)'), ylabel('|P1(f)|')
 
 %% Pre-processing: remove high frequency component
-fc = exp(-1); % normalized frequency
+fc = 1; % cutoff frequency [Hz]
+fc = fc/15; % convert to normalized frequency
+%fc = exp(-1);
 fs = 1/mean(dt); % sampling frequency [Hz]
 
 % Butterworth filter
 [b,a] = butter(1, fc/(fs/2));
 Ax = filter(b,a,Ax); Ay = filter(b,a,Ay); Az = filter(b,a,Az);
-Gx = filter(b,a,Gx); Gy = filter(b,a,Gy); Gz = filter(b,a,Gz);
+%Gx = filter(b,a,Gx); Gy = filter(b,a,Gy); Gz = filter(b,a,Gz);
 
 %% Convert data to proper units
 g = 9.81; % gravitational constant (m/s^2)
@@ -70,7 +72,7 @@ roll_est_gyr = zeros(1, length(t));
 pitch_est_gyr = zeros(1, length(t));
 yaw_est_gyr = zeros(1, length(t));
 for i = 2:length(t)
-   if (abs(sqrt(Ax(i).^2 + Ay(i).^2 + Az(i).^2)- 9.81) < epsilon)
+   if (abs(sqrt(Ax.^2 + Ay.^2 + Az.^2))) < epsilon
        yaw_est_gyr(i) = yaw_est_gyr(i-1);
        roll_est_gyr(i) = roll_est_gyr(i-1);
        pitch_est_gyr(i) = pitch_est_gyr(i-1);
