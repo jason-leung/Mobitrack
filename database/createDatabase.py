@@ -17,15 +17,15 @@ mycursor.execute("USE mobitrack")
 
 # Create the wearing session table if it doesn't exist
 mycursor.execute("CREATE TABLE IF NOT EXISTS wearing_session (" +
-				 "SessionID VARCHAR(16), " +
-				 "PatientID VARCHAR(255), " +
+				 "SessionID VARCHAR(16) PRIMARY KEY NOT NULL, " +
+				 "PatientID VARCHAR(8), " +
 				 "Location VARCHAR(20), " + 
-				 "TimeStamp DATE )")
+				 "TimeStamp TIMESTAMP ) " )
 				 
 # Create the exercise period table if it doesn't exist
 mycursor.execute("CREATE TABLE IF NOT EXISTS exercise_period (" +
-				 "PeriodID VARCHAR(16), " +
+				 "PeriodID VARCHAR(8) PRIMARY KEY NOT NULL, " +
 				 "SessionID VARCHAR(16), " +
 				 "Duration VARCHAR(255), " +
 				 "Repetitions VARCHAR(20), " + 
-				 "TimeStamp DATE )")
+				 "TimeStamp TIMESTAMP )" )
