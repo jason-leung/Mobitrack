@@ -26,6 +26,7 @@ void loop() {
     // Format:
     // ax, ay, az, gx, gy, gz
 
+    delay(10);
     Serial.println("");
     Serial.print(ax);
     Serial.print(",");
@@ -38,6 +39,4 @@ void loop() {
     Serial.print(gy);
     Serial.print(",");
     Serial.print(gz);
-
-    //delay(10);
 }

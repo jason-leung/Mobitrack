@@ -4,7 +4,7 @@ close all, clear all, clc
 secondsToCollect = 100;
 
 if ~isempty(instrfind) fclose(instrfind); delete(instrfind); end
-arduino = serial('COM9','BaudRate',9600); 
+arduino = serial('COM12','BaudRate',115200); 
 fopen(arduino);
 time = [];
 data = [];
