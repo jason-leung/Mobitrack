@@ -1,10 +1,13 @@
-#include "Wire.h"
+#include "Wire.h" // this line must go before everything else
 #include "I2Cdev.h"
 #include "MPU6050_6Axis_MotionApps20.h"
     
 // Set up MPU6050 variables
 MPU6050 accelgyro;
 int16_t ax,ay,az, gx, gy, gz;
+
+// Set up state variables
+int16_t state = 0;
 
 void setup() {
     Wire.begin();
@@ -19,13 +22,21 @@ void setup() {
 }
 
 void loop() {
+  // Get state
+  if(Serial.available())
+  {
+      state = Serial.read();
+  }
+
+  // Stream IMU data if state = 1
+  if(state == 49){
     // Read data
     accelgyro.getMotion6(&ax, &ay, &az, &gx, &gy, &gz);
     
-    // Print data to serial to be read by Matlab
-    // Format:
-    // ax, ay, az, gx, gy, gz
-
+    // Print data to serial
+    // Format: ax, ay, az, gx, gy, gz
+    
+    delay(10);
     Serial.println("");
     Serial.print(ax);
     Serial.print(",");
@@ -38,6 +49,5 @@ void loop() {
     Serial.print(gy);
     Serial.print(",");
     Serial.print(gz);
-
-    //delay(10);
+  }
 }
