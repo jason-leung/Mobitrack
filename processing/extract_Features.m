@@ -16,7 +16,8 @@ for i = 1:length(segments)
         segments(i).t(end) - segments(i).t(1), ...
         prctile(segments(i).pitch, 25), ...
         prctile(segments(i).pitch, 50), ...
-        prctile(segments(i).pitch, 75) ];
+        prctile(segments(i).pitch, 75)...
+     ];
     
     % Pitch Frequency Features
     L = length(segments(i).pitch);
@@ -39,7 +40,8 @@ for i = 1:length(segments)
         segments(i).t(end) - segments(i).t(1), ...
         prctile(segments(i).roll, 25), ...
         prctile(segments(i).roll, 50), ...
-        prctile(segments(i).roll, 75) ];
+        prctile(segments(i).roll, 75)...
+        ];
     
     % Roll Frequency Features
     L = length(segments(i).roll);
@@ -52,7 +54,5 @@ for i = 1:length(segments)
     
     % Concatenate all features
     features = [features; pitch_features_statistical, pitch_features_frequency, roll_features_statistical, roll_features_frequency];
-    
 end
-
 end
