@@ -13,3 +13,6 @@ Thumbs.db
 
 # Project Specific
 processing/results/
+database/m_django/env/
+database/m_django/mobitrack/mobitrack/__pycache__/
+database/m_django/mobitrack/polls/__pycache__/

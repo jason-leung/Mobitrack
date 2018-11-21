@@ -10,7 +10,6 @@ For Mobitrack, MySQL is used due to multiple reasons
 	-> high availability (every request receives a response about whether it succeeded or not) & high consistency (all database has latest successful transaction updated) due to the quality of rdbms (relational database management system)
 	
 2. Things to Do:
-- System Requirements:
-	- MySQL 
-	- MySQL Connector
+- System Requirements: Check requirements.txt
+	
 	
