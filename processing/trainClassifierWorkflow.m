@@ -2,23 +2,31 @@ close all, clear all, clc
 
 saveTrainingData = 1;
 baseFolderPath = 'D:\OneDrive\School\4A\BME 461\Mobitrack';
-cd(baseFolderPath);
+%cd(baseFolderPath);
 
-data_directory = 'data\Nov17';
-training_filename = 'training';
-testing_filename = 'testing';
+data_directory = 'data\TrainingData';
+training_filename = 'training_nov17.20-0 striated';
+testing_filename = 'testing_nov17.20-0 striated';
+classifier_filename = 'classifier_simple_2.mat';
 classifier_save_path = strcat(baseFolderPath, filesep, 'processing', filesep, 'classifiers');
 trainingSet_save_path = strcat(baseFolderPath, filesep, 'processing', filesep, 'trainingData');
 testingSet_save_path = strcat(baseFolderPath, filesep, 'processing', filesep, 'trainingData');
 path_to_data = strcat(baseFolderPath, filesep, data_directory, filesep);
 
-files = {'RA_flx_full', 'LA_flx_full_good', 'RA_flx_small', 'LA_flx_small', 'RA_noise_1', 'LA_noise_1', 'RA_noise_2','LA_noise_2', 'LA_noise_3'};
+% files = {'RL_knee_flx_full_nov20_1'};
+% trainingFiles = {'RA_flx_full', 'LA_flx_full_good', 'RA_flx_small', 'LA_flx_small', 'RA_noise_1', 'LA_noise_1', 'RA_noise_2','LA_noise_2', 'LA_noise_3'};
+% testingFiles = {'LA_flx_full_nov20_1', 'LA_flx_full_nov20_2', 'LA_noise_nov20_1', 'LA_noise_nov20_2', 'LA_flx_full_nov20_3'...
+% 'RA_noise_1_nov20', 'RA_noise_2_nov20', 'RA_flx_full_nov20_0', 'RA_flx_full_nov20_1', 'RA_flx_full_nov20_2', 'RA_flx_full_nov20_3'};
+trainingFiles = {'RA_flx_full', 'LA_flx_full_good', 'RA_flx_small', 'LA_flx_small', 'RA_noise_1', 'LA_noise_1', 'RA_noise_2','LA_noise_2', 'LA_noise_3', ...
+'LA_flx_full_nov20_1', 'LA_flx_full_nov20_2', 'LA_noise_nov20_1', 'LA_noise_nov20_2', 'LA_flx_full_nov20_3'...
+'RA_noise_1_nov20', 'RA_noise_2_nov20', 'RA_flx_full_nov20_0', 'RA_flx_full_nov20_1', 'RA_flx_full_nov20_2', 'RA_flx_full_nov20_3'};
+
 features = [];
 labels = [];
 
-% Load and segment data
-for i = 1:length(files)
-    file = files(i);
+% Load and segment training data
+for i = 1:length(trainingFiles)
+    file = trainingFiles(i);
     file = file{1};
     data = load(strcat(path_to_data, file, '.mat'));
     
@@ -40,16 +48,50 @@ end
 
 
 %% Train SVM
-SVMModel = fitcsvm(features, labels);
+% SVMModel = fitcsvm(features, labels);
 
 %% Save
-save(strcat(classifier_save_path, filesep,'classifier_simple.mat'), 'SVMModel')
+% save(strcat(classifier_save_path, filesep, classifier_filename), 'SVMModel')
 if(saveTrainingData)
     trainingData = horzcat(labels, features);
-    testingData = trainingData;
+    
+    features = [];
+    labels = [];
+    
+
+    try
+    % Load and segment testing data
+    for i = 1:length(testingFiles)
+        file = testingFiles(i);
+        file = file{1};
+        data = load(strcat(path_to_data, file, '.mat'));
+
+        [t, roll, pitch] = preprocessData(data);
+
+        % Segment
+        segment_inds = segmentData(t, roll, pitch, 1);
+        segments = extractSegments(t, roll, pitch, segment_inds);
+
+        % Features
+        features_from_file = extract_Features(segments);
+
+        % Labels
+        labels_from_file = csvread(strcat(path_to_data, filesep,file, '_labels.csv'));
+
+        labels = [labels; labels_from_file];
+        features = [features; features_from_file];
+    end
+        testingData = horzcat(labels, features);
+
+    catch
+        testingData = trainingData(2:2:end, :);
+        trainingData = trainingData(1:2:end, :);
+    end
+    
+
+    
     save(strcat(trainingSet_save_path, filesep, training_filename, '.mat'), 'trainingData')
     save(strcat(trainingSet_save_path, filesep, testing_filename, '.mat'), 'testingData')
-
 end
 
 

@@ -1,17 +1,17 @@
 clear all
 
 %% Load in the feature data
-trainingFeaturesFile =  'D:\OneDrive\School\4A\BME 461\Mobitrack\processing\trainingData\training.mat';
+trainingFeaturesFile =  'D:\OneDrive\School\4A\BME 461\Mobitrack\processing\trainingData\testing_nov20.mat';
 load(trainingFeaturesFile)
 
 % TODO: change these to be different
-testingFeaturesFile = 'D:\OneDrive\School\4A\BME 461\Mobitrack\processing\trainingData\testing.mat';
+testingFeaturesFile = 'D:\OneDrive\School\4A\BME 461\Mobitrack\processing\trainingData\training_nov17.mat';
 load(testingFeaturesFile)
 
 % Set the location where the results should be saved
 filepaths.root = 'D:\OneDrive\School\4A\BME 461\Mobitrack\';
 subFolder1 = 'processing\results\';
-subFolder2 = 'testFeatureSet';
+subFolder2 = 'trainNov20_testNov17_v2';
 
 % Extract features to train the classifier
 % Pitch
@@ -28,7 +28,9 @@ subFolder2 = 'testFeatureSet';
 
 featureSets = {...
                [2, 7, 16, 21], ...  % std, range of both
-               [2, 3, 4, 7, 13, 16, 17, 18, 21, 27]
+               [2, 3, 4, 7, 13, 16, 17, 18, 21, 27], ...
+               [2, 7, 8, 16, 21, 22], ...
+               [1:28]...
                };
 
 %% Load in the supplementary information
