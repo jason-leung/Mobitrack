@@ -1,49 +1,36 @@
-close all, clear all, clc
+function [ Mdl ] = trainClassifier(currentSVMOptions, trainingData, trainingDataLabels)
+% A function that interprets the selected classifier options and trains a
+% classifier using the provided input data. This function is used by the 2
+% class and 3 class hierarchical workflow. 
+%
+% Parameters: 
+%   currentSVMOptions: a struct containing the parameters the SVM
+%                      classifier Mdl is to have.
+%   trainingData: an n by m matrix where each row is one observation to be
+%                 used to train the classifier. There should be no class
+%                 labels in this matrix.
+%   trainingDataLabels: an n by 1 vector containing the class labels that
+%                       correspond to each row of the trainingData matrix.
+%
+% Returns:
+%   Mdl: the trained SVM classifier 
+%
 
-cd ('D:\OneDrive\School\4A\BME 461\Mobitrack\data\Nov17');
-files = {'RA_flx_full', 'LA_flx_full_good', 'RA_flx_small', 'LA_flx_small', 'RA_noise_1', 'LA_noise_1', 'RA_noise_2','LA_noise_2', 'LA_noise_3'};
-features = [];
-labels = [];
 
-% Load and segment data
-for i = 1:length(files)
-    file = files(i);
-    file = file{1};
-    data = load(strcat(file, '.mat'));
+    rng(1) % Set the seed to 1 to get the same results each time a particular set of parameters is selected
     
-    [t, roll, pitch] = preprocessData(data);
+    % Need to check if the kernel type is polynomial because attempting to
+    % set a PolynomialOrder for a non-polynomial kernel will cause an error.
+    if(strcmp(char(currentSVMOptions.kernel), 'polynomial'))
+        Mdl = fitcsvm(trainingData, trainingDataLabels, 'KernelScale', currentSVMOptions.kernelScale, 'Standardize', currentSVMOptions.standardize,...
+                        'BoxConstraint', currentSVMOptions.boxConstraint, 'Solver', currentSVMOptions.solver, ...
+                        'KernelFunction', currentSVMOptions.kernel, 'PolynomialOrder', currentSVMOptions.polynomialOrder);
 
-    % Segment
-    segment_inds = segmentData(t, roll, pitch);
-    segments = extractSegments(t, roll, pitch, segment_inds);
+    else
+         Mdl = fitcsvm(trainingData, trainingDataLabels, 'KernelScale', currentSVMOptions.kernelScale, 'Standardize', currentSVMOptions.standardize,...
+                        'BoxConstraint', currentSVMOptions.boxConstraint, 'Solver', currentSVMOptions.solver, ...
+                        'KernelFunction', currentSVMOptions.kernel);
 
-    % Features
-    features_from_file = extract_Features(segments);
-    
-    
-    % Labels
-    labels_from_file = csvread(strcat(file, '_labels.csv'));
-    
-    labels = [labels; labels_from_file];
-    features = [features; features_from_file];
+    end
 end
-
-%% Visualize Features
-feature_1 = 2;
-feature_2 = 13;
-
-signal_features = [features(labels>0,feature_1), features(labels>0,feature_2)];
-noise_features = [features(labels<1,feature_1), features(labels<1,feature_2)];
-
-figure, hold on,
-scatter(signal_features(:,1), signal_features(:,2), 'g');
-scatter(noise_features(:,1), noise_features(:,2), 'r');
-title('Feature Space', 'fontweight', 'bold');
-legend('Exercise', 'Noise');
-xlabel(strcat('Feature ', int2str(feature_1)));
-ylabel(strcat('Feature ', int2str(feature_2)));
-
-%% Train SVM
-SVMModel = fitcsvm(features, labels, 'KernelFunction', 'linear');
-
 

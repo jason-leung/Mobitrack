@@ -1,8 +1,8 @@
 close all, clear all, clc
 
 %% Load data
-cd ('D:\OneDrive\School\4A\BME 461\Mobitrack\data\Nov17');
-filename = 'RA_flx_full_2.mat';
+cd ('C:\Users\andre\OneDrive\School\4A\BME 461\Mobitrack\data\Nov17');
+filename = 'LA_noise_1.mat';
 data = load(filename);
 
 %% Preprocess
@@ -17,7 +17,7 @@ segments = extractSegments(t, roll, pitch, segment_inds);
 features = extract_Features(segments);
 
 %% Load Classifier
-classifier = load('SVMModel_3_gaussian.mat');
+classifier = load('classifier_simple.mat');
 SVMModel = classifier.SVMModel;
 
 %% Predict
