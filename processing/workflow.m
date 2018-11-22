@@ -1,13 +1,14 @@
 close all, clear all, clc
 
 %% Load data
-cd ('C:\Users\andre\OneDrive\School\4A\BME 461\Mobitrack\data\Nov17');
-filename = 'LA_noise_1.mat';
+% cd ('C:\Users\andre\OneDrive\School\4A\BME 461\Mobitrack\data\Nov17');
+filename = 'D:\OneDrive\School\4A\BME 461\Mobitrack\data\Nov17\RA_flx_full.mat';
 data = load(filename);
 
 %% Preprocess
 [t, roll, pitch] = preprocessData(data);
-
+figure, 
+plot(t, pitch), title('Off-line processing pitch')
 %% Segment
 createPlots = 1;
 segment_inds = segmentData(t, roll, pitch, createPlots);
