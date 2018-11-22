@@ -107,7 +107,7 @@ classdef DataProcessor < handle
             else
                 obj.rawData.ax = [obj.rawData.ax(2:end), Ax];
                 obj.rawData.ay = [obj.rawData.ay(2:end), Ay];
-                obj.rawData.az = [obj.rawData.ay(2:end), Az];
+                obj.rawData.az = [obj.rawData.az(2:end), Az];
                 
                 obj.rawData.gx = [obj.rawData.gx(2:end), Gx_rad];
                 obj.rawData.gy = [obj.rawData.gy(2:end), Gy_rad];
