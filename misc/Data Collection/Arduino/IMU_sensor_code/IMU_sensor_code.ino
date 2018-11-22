@@ -1,6 +1,6 @@
+#include "Wire.h"
 #include "I2Cdev.h"
 #include "MPU6050_6Axis_MotionApps20.h"
-#include "Wire.h"
     
 // Set up MPU6050 variables
 MPU6050 accelgyro;
@@ -15,7 +15,7 @@ void setup() {
     accelgyro.setXAccelOffset(-2390);
     accelgyro.setYAccelOffset(-482);
     accelgyro.setZAccelOffset(1188);
-    Serial.begin(9600);
+    Serial.begin(115200);
 }
 
 void loop() {
@@ -26,6 +26,7 @@ void loop() {
     // Format:
     // ax, ay, az, gx, gy, gz
 
+    delay(10);
     Serial.println("");
     Serial.print(ax);
     Serial.print(",");
@@ -38,6 +39,4 @@ void loop() {
     Serial.print(gy);
     Serial.print(",");
     Serial.print(gz);
-
-    //delay(10);
 }
