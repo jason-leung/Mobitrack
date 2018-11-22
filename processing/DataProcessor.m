@@ -14,14 +14,43 @@ classdef DataProcessor < handle
         smoothedData = struct(); % for debugging only for now
         smoothingWindowSize;
         
+        % Segmentation Parameters
+        lag;
+        peakThreshold;
+        influence;
+        
+        % Segmentation / peak finding data vectors
+        filteredData = [];
+        avgFilter = [];
+        stdFilter = [];
+        signals = [];
+        lastSignalEdgeIdx = -1;
+        maxSamplesToTakeTemporalMean = 100;
+        offsetAfterMaxSamplesToTakeTemporalMean = 10;
+        segmentInds = [];
+        
+        last_event_ind = 1;
+        second_last_event_ind = 1;
+        
         firstStep;
         repDetected = 0;
+        numSamplesSeen = 0;
     end
     
     methods
-        function [obj] = DataProcessor(SVMModel, smoothingWindowSize) % initialize the DataProcessor object
+        function [obj] = DataProcessor(SVMModel, smoothingWindowSize, segmentationLag, segmentationThreshold, segmentationInfluence) % initialize the DataProcessor object
             obj.SVMModel = SVMModel;
             obj.smoothingWindowSize = smoothingWindowSize;
+            obj.lag = segmentationLag;
+            obj.peakThreshold = segmentationThreshold;
+            obj.influence = segmentationInfluence;
+            
+            % Initialize peak finding vector sizes
+            obj.filteredData = zeros(1, segmentationLag + 1);
+            obj.avgFilter = zeros(1, segmentationLag + 1)';
+            obj.stdFilter = zeros(1, segmentationLag + 1)';
+            obj.signals = zeros(1, segmentationLag + 1)';
+            
             obj.firstStep = 1;
         end
         
@@ -30,17 +59,141 @@ classdef DataProcessor < handle
             obj.getAngles(data, time);
             
             % Segment
+            [obj, foundSeg] = segment(obj, obj.pitchSinceLastSegment(end));
             
             % If end of segment, classify
-            
+            if(foundSeg)
+                fprintf('Found Seg\n');
+            end
             
             obj.firstStep = 0;
+            obj.numSamplesSeen = obj.numSamplesSeen + 1;
             
+
         end
     end
     
     
-    methods (Access = private)
+    methods (Access = private) 
+        function [obj, foundSeg] = segment(obj, data)
+            foundSeg = 0;
+            % Haven't seen enough samples, just add to data vector
+            if (obj.numSamplesSeen <= obj.lag)
+                obj.filteredData(obj.numSamplesSeen+1) = data;
+                
+            elseif (obj.numSamplesSeen == obj.lag + 1)
+                  % Prepare the avg and std filters
+                  obj.avgFilter(obj.lag+1,1) = mean(obj.filteredData(1:obj.lag+1));
+                  obj.stdFilter(obj.lag+1,1) = std(obj.filteredData(1:obj.lag+1));
+            
+            else % Process normally
+                
+                % If new value is a specified number of deviations away
+                if abs(data-obj.avgFilter(end)) > obj.peakThreshold*obj.stdFilter(end)
+                    if data > obj.avgFilter(end)
+                        obj.signals = [obj.signals; 1]; % Positive signal
+                    else
+                        obj.signals = [obj.signals; -1]; % Negative signal
+                    end
+                    % Make influence lower
+                    newFilteredData = obj.influence*data+(1-obj.influence)*obj.filteredData(end);
+                    obj.filteredData = [obj.filteredData, newFilteredData];
+                else
+                    % No signal
+                    obj.signals = [obj.signals; 0];
+                    obj.filteredData = [obj.filteredData, data];
+                end
+                % Adjust the filters
+                obj.avgFilter = [obj.avgFilter; mean(obj.filteredData(end-obj.lag:end))];
+                obj.stdFilter = [obj.stdFilter; std(obj.filteredData(end-obj.lag:end))];
+                
+                [obj, foundSeg] = fixSegments(obj);
+            end
+        end
+        
+        function [obj, foundSeg] = fixSegments(obj)
+            foundSeg = 0;
+            %      0 to  1 --> rising edge --> store idx
+            %      1 to  0 --> falling edge --> fix signal + reset idx
+            %      0 to -1 --> falling edge --> store idx
+            %     -1 to  0 --> rising edge --> fix signal + reset idx
+            %     -1 to  1 --> fix signal + store idx
+            %      1 to -1 --> fix signal + store idx
+            %       if we haven't seen  anything in
+            %       obj.maxSamplesToTakeTemporalMean, just use last edge.
+        
+            if((obj.signals(end-1) == 0) && (obj.signals(end) == 1))
+                obj.lastSignalEdgeIdx = obj.numSamplesSeen;
+                
+            elseif((obj.signals(end-1) == 1) && (obj.signals(end) == 0))
+                if(obj.lastSignalEdgeIdx ~= -1)
+                    obj.signals(obj.lastSignalEdgeIdx:end) = 0;
+                    newEventIndex = round((obj.lastSignalEdgeIdx+obj.numSamplesSeen)/2);
+                    obj.signals(newEventIndex) = 1;
+                    [obj, foundSeg] = checkForCompleteSegments(obj, newEventIndex);
+                end
+                obj.lastSignalEdgeIdx = -1;
+                
+                
+            elseif((obj.signals(end-1) == 0) && (obj.signals(end) == -1))
+                obj.lastSignalEdgeIdx = obj.numSamplesSeen;
+                
+                
+            elseif((obj.signals(end-1) == -1) && (obj.signals(end) == 0))
+                if(obj.lastSignalEdgeIdx ~= -1)
+                    obj.signals(obj.lastSignalEdgeIdx:end) = 0;
+                    newEventIndex = round((obj.lastSignalEdgeIdx+obj.numSamplesSeen)/2);
+                    obj.signals(newEventIndex) = -1;
+                    [obj, foundSeg] = checkForCompleteSegments(obj, newEventIndex);
+                end
+                obj.lastSignalEdgeIdx = -1;
+                
+                
+            elseif((obj.signals(end-1) == -1) && (obj.signals(end) == 1))
+                if(obj.lastSignalEdgeIdx ~= -1)
+                    obj.signals(obj.lastSignalEdgeIdx:end) = 0;
+                    
+                    newEventIndex = round((obj.lastSignalEdgeIdx+obj.numSamplesSeen)/2);
+                    obj.signals(newEventIndex) = -1;
+                    [obj, foundSeg] = checkForCompleteSegments(obj, newEventIndex);
+                end
+                obj.lastSignalEdgeIdx = obj.numSamplesSeen;
+                
+            elseif((obj.signals(end-1) == 1) && (obj.signals(end) == -1))
+                if(obj.lastSignalEdgeIdx ~= -1)
+                    obj.signals(obj.lastSignalEdgeIdx:end) = 0;
+                    newEventIndex = round((obj.lastSignalEdgeIdx+obj.numSamplesSeen)/2);
+                    obj.signals(newEventIndex) = 1;
+                    [obj, foundSeg] = checkForCompleteSegments(obj, newEventIndex);
+                end
+                obj.lastSignalEdgeIdx = obj.numSamplesSeen;
+            
+            elseif (obj.lastSignalEdgeIdx ~= -1 && (obj.numSamplesSeen - obj.lastSignalEdgeIdx) > obj.maxSamplesToTakeTemporalMean)
+                obj.signals(obj.lastSignalEdgeIdx:end) = 0;
+                newEventIndex = obj.lastSignalEdgeIdx + obj.offsetAfterMaxSamplesToTakeTemporalMean;
+                obj.signals(newEventIndex) = 1;
+
+                [obj, foundSeg] = checkForCompleteSegments(obj, newEventIndex);
+                obj.lastSignalEdgeIdx = -1;
+            end
+
+        end
+        
+        function [obj, foundSeg] = checkForCompleteSegments(obj, indexOfCurrentEvent)
+            foundSeg = 0;
+            % Look for up-down-up pattern
+            if (obj.signals(obj.second_last_event_ind) == 1 && ...
+                obj.signals(obj.last_event_ind) == -1 && ...
+                obj.signals(indexOfCurrentEvent) == 1)
+            
+                obj.segmentInds = [obj.segmentInds; obj.second_last_event_ind, indexOfCurrentEvent];
+                foundSeg = 1;
+            end
+               obj.second_last_event_ind = obj.last_event_ind;
+               obj.last_event_ind = indexOfCurrentEvent;
+        
+        end
+        
         function [obj] = getAngles(obj, data, time)
             % Change to appropriate units and add data to local rawData struct
             obj.addDataToStruct(data);
