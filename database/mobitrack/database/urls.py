@@ -4,6 +4,6 @@ from . import views
 
 urlpatterns = [
     path('', views.index, name='index'),
-    # /database/sessionID
-    path('<sessionID>/dashboard', views.dashboard, name='dashboard'),
+    # Url for session detail page. example: /database/sessionID
+    path('<sessionID>/', views.sessionDetail, name='detail'),
 ]

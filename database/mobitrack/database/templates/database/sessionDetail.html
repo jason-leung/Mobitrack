@@ -1,0 +1,13 @@
+{% load render_table from django_tables2 %}
+<!doctype html>
+<html>
+	<head>
+		<h1>Wearing Session: {{session.sessionID}}</h1>
+		<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" />
+	</head>
+	<body>
+		<h2><b>Location:</b> {{session.location}}</h2><br>
+		<h2><b>Time stamp:</b> {{session.timeStamp}}</b><br>
+		{% render_table table %}
+	</body>
+</html>
