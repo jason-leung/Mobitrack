@@ -1,7 +1,7 @@
 close all, clear all, clc
 
 %% Data Collection
-secondsToCollect = 10;
+secondsToCollect = 100;
 
 if ~isempty(instrfind) fclose(instrfind); delete(instrfind); end
 
@@ -46,6 +46,6 @@ while collect
         end
 end
    
-% Close comport
+% Close com port
 fclose(arduino);    
 disp('Data capture complete.')
