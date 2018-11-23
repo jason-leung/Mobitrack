@@ -1,8 +1,9 @@
 close all, clear all, clc
 
 %% Load data
-filename = 'C:\Users\Jason\Desktop\Mobitrack\data\Nov21\LA_flx_full_2.mat';
+filename = 'C:\Users\Jason\Desktop\Mobitrack\data\Nov21\RA_flx_full_1.mat';
 % filename = 'C:\Users\Jason\Desktop\Mobitrack\data\Nov21\RA_noise_4.mat';
+filename = 'C:\Users\Jason\Desktop\Mobitrack\data\Nov22\RA_mixed_1.mat';
 data = load(filename);
 
 % Load Classifier
@@ -30,11 +31,5 @@ end
 
 
 %%
-figure, hold on
-plot(processor.pitchSinceLastSegment * 180.0 / pi), title('Real-time processing pitch')
-stairs(processor.signals * 5,'r','LineWidth',1.5);
-    for i = 1:size(processor.segmentInds,1)
-        rectangle('Position', [processor.segmentInds(i,1), min(processor.pitchSinceLastSegment), processor.segmentInds(i,2) - processor.segmentInds(i,1), max(processor.pitchSinceLastSegment) - min(processor.pitchSinceLastSegment)], 'EdgeColor', 'r');
-    end
-%segments = extractSegments(data.time, processor.rollSinceLastSegment, processor.pitchSinceLastSegment, processor.segmentInds);
+processor.plotResult();
 

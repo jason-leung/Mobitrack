@@ -21,7 +21,7 @@ classdef DataProcessor < handle
         stdFilter = [];
         signals = [];
         lastSignalEdgeIdx = -1;
-        maxSamplesToTakeTemporalMean = 100;
+        maxSamplesToTakeTemporalMean = 200;
         offsetAfterMaxSamplesToTakeTemporalMean = 10;
         segmentInds = [];
         
@@ -78,6 +78,7 @@ classdef DataProcessor < handle
             
             % If end of segment, classify
             if(foundSeg)
+                fprintf('Segment found');
                 % extract features from last segment
                 extractFeatures(obj);
                 
@@ -89,6 +90,28 @@ classdef DataProcessor < handle
             obj.numSamplesSeen = obj.numSamplesSeen + 1;
             
 
+        end
+        function [obj] = plotResult(obj)
+            figure, hold on
+            plot(obj.timeSinceLastSegment, ...
+                obj.pitchSinceLastSegment .* 180.0 ./ pi, 'Color', 'blue', 'LineWidth', 1.5)
+            plot(obj.timeSinceLastSegment, ...
+                obj.rollSinceLastSegment .* 180.0 ./ pi, 'Color', 'green', 'LineWidth', 1.5)
+            title('Exercise Repetition Detection', 'FontWeight', 'bold')
+            xlabel('Time (seconds)', 'FontWeight', 'bold')
+            xlim([obj.timeSinceLastSegment(1), obj.timeSinceLastSegment(end)])
+            ylabel('Angle (degrees)', 'FontWeight', 'bold')
+            sigPitch = obj.pitchSinceLastSegment .* 180.0 ./ pi;
+            plot(obj.timeSinceLastSegment(obj.signals~=0), ...
+                sigPitch(obj.signals~=0),'r*','LineWidth',1.5);
+            for i = 1:size(obj.segmentInds,1)
+                rectangle('Position', [obj.timeSinceLastSegment(obj.segmentInds(i,1)),...
+                    min(obj.pitchSinceLastSegment)*180/pi, ...
+                    obj.timeSinceLastSegment(obj.segmentInds(i,2)) - obj.timeSinceLastSegment(obj.segmentInds(i,1)), ...
+                    max(obj.pitchSinceLastSegment)*180/pi - min(obj.pitchSinceLastSegment)*180/pi], 'EdgeColor', 'magenta');
+            end
+            legend('Pitch', 'Roll', 'Peaks', 'Segments');
+            
         end
     end
     
@@ -192,14 +215,11 @@ classdef DataProcessor < handle
             % Haven't seen enough samples, just add to data vector
             if (obj.numSamplesSeen <= obj.lag)
                 obj.filteredData(obj.numSamplesSeen+1) = data;
-                
             elseif (obj.numSamplesSeen == obj.lag + 1)
                   % Prepare the avg and std filters
                   obj.avgFilter(obj.lag+1,1) = mean(obj.filteredData(1:obj.lag+1));
                   obj.stdFilter(obj.lag+1,1) = std(obj.filteredData(1:obj.lag+1));
-            
             else % Process normally
-                
                 % If new value is a specified number of deviations away
                 if abs(data-obj.avgFilter(end)) > obj.peakThreshold*obj.stdFilter(end)
                     if data > obj.avgFilter(end)
@@ -328,8 +348,8 @@ classdef DataProcessor < handle
                 compPitchEst = pitch_est_acc;
             else
                 dt = obj.timeSinceLastSegment(end) - time;
-                roll_est_gyr = obj.rollSinceLastSegment(end) + dt * obj.smoothedData.gx(end);
-                pitch_est_gyr = obj.pitchSinceLastSegment(end) + dt * obj.smoothedData.gy(end);
+                roll_est_gyr = obj.rollSinceLastSegment(end) + dt(end) * obj.smoothedData.gx(end);
+                pitch_est_gyr = obj.pitchSinceLastSegment(end) + dt(end) * obj.smoothedData.gy(end);
                 
                 compRollEst = (1 - alpha) * roll_est_gyr  + alpha * roll_est_acc;
                 compPitchEst = (1 - alpha) * pitch_est_gyr  + alpha * pitch_est_acc;
