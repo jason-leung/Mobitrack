@@ -1,4 +1,16 @@
 close all, clear all, clc
+ports = instrfind;
+if(length(ports) > 0)
+    fclose(ports);
+end
+
+%% Variables
+comPort = 'COM14';
+secondsToCollect = 100;
+
+%%
+warning('off','all')
+dotCount = 0;
 
 %% Initialize Data Processing Variables
 % Load Classifier
@@ -23,15 +35,14 @@ gy = [];
 gz = [];
 timeStamp = 0;
 collect = true;
-secondsToCollect = 100;
 
 %% Serial Connection with Aruino
-arSerial = serial('COM17','BaudRate',115200); 
+arSerial = serial(comPort,'BaudRate',115200); 
 fopen(arSerial);
 pause();
+
 % Start Recording
-% fprintf(arSerial, '1');
-fprintf('Start Monitoring');
+disp('Start Monitoring');
 
 % Collect data
 tic
@@ -39,7 +50,7 @@ while collect
     data_temp = fscanf(arSerial, '%d,%d,%d,%d,%d,%d');
     
     if (numel(data_temp) ~= 6)
-        disp('fail to match format')
+%         disp('fail to match format')
         continue
     end
     
@@ -58,25 +69,26 @@ while collect
     end
     
     processor.processStep([ax(end), ay(end), az(end), gx(end), gy(end), gz(end)]', timeStamp);
-    if(processor.repDetected)
-%         fprintf(arSerial, '2');
-        fprintf('Repetition Detected');
+    if(processor.repDetected(end))
+        fprintf(' ');
+        disp('Repetition Detected');
+        dotCount = 0;
+    else
+        if timeStamp > 10
+            if(dotCount > 30)
+                disp('.');
+                dotCount = 0;
+            else
+                fprintf('.');
+            end
+            dotCount = dotCount + 1;
+        end
     end
 end
 
 %%
-% fprintf(arSerial,'0');
 fclose(arSerial);
 
+% processor.plotResult();
 
-%%
-processor.plotResults();
-
-% figure, hold on
-% plot(processor.pitchSinceLastSegment * 180.0 / pi), title('Real-time processing pitch')
-% stairs(processor.signals * 5,'r','LineWidth',1.5);
-%     for i = 1:size(processor.segmentInds,1)
-%         rectangle('Position', [processor.segmentInds(i,1), min(processor.pitchSinceLastSegment), processor.segmentInds(i,2) - processor.segmentInds(i,1), max(processor.pitchSinceLastSegment) - min(processor.pitchSinceLastSegment)], 'EdgeColor', 'r');
-%     end
-% segments = extractSegments(data.time, processor.rollSinceLastSegment, processor.pitchSinceLastSegment, processor.segmentInds);
 

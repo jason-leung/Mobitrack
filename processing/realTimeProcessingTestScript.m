@@ -1,9 +1,9 @@
 close all, clear all, clc
 
 %% Load data
-filename = 'C:\Users\Jason\Desktop\Mobitrack\data\Nov21\RA_flx_full_1.mat';
+% filename = 'C:\Users\Jason\Desktop\Mobitrack\data\Nov21\RA_flx_full_1.mat';
 % filename = 'C:\Users\Jason\Desktop\Mobitrack\data\Nov21\RA_noise_4.mat';
-filename = 'C:\Users\Jason\Desktop\Mobitrack\data\Nov22\RA_mixed_1.mat';
+filename = 'C:\Users\Jason\Desktop\Mobitrack\data\Nov22\RA_mixed_2.mat';
 data = load(filename);
 
 % Load Classifier

@@ -1,11 +1,11 @@
 close all, clear all, clc
 
 %% Data Collection
-secondsToCollect = 100;
+secondsToCollect = 150;
 
 if ~isempty(instrfind) fclose(instrfind); delete(instrfind); end
 
-arduino = serial('COM12','BaudRate',115200); 
+arduino = serial('COM14','BaudRate',115200); 
 fopen(arduino);
 time = [];
 data = [];
