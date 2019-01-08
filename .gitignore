@@ -13,3 +13,6 @@ Thumbs.db
 
 # Project Specific
 processing/results/
+database/mobitrack/env/
+__pycache__/
+database/.DS_Store
