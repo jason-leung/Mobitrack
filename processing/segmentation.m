@@ -2,7 +2,7 @@
 close all, clear all, clc
 
 %% Load data
-cd ('D:\OneDrive\School\4A\BME 461\Mobitrack\data\Nov16');
+cd ('C:\Users\Jason\Desktop\Mobitrack\data\Nov16');
 filename = 'RA_continuous_comp';
 
 data = load(strcat(filename, '.mat'));

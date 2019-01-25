@@ -2,9 +2,9 @@
 close all, clear all, clc
 
 %% Load data
-cd ('D:\OneDrive\School\4A\BME 461\Mobitrack\data\Nov16');
+cd ('C:\Users\Jason\Desktop\Mobitrack\data\Nov16');
 % filename = 'roll_test.mat';
-filename = 'RA_continuous';
+filename = 'RA_extended_flx';
 
 % filename = 'yaw_test.mat';
 % filename = 'stationary';

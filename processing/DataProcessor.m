@@ -107,8 +107,6 @@ classdef DataProcessor < handle
             plot(obj.timeSinceLastSegment(obj.signals~=0), ...
                 sigPitch(obj.signals~=0),'k*','LineWidth',1.5);
             
-            xlim([18, 150]);
-            
             for i = 1:size(obj.segmentInds,1)
                 
                 if(obj.segmentLabels(i)) % rep detected
@@ -125,6 +123,21 @@ classdef DataProcessor < handle
  
             end
             legend('Pitch', 'Roll', 'Peaks');
+            
+            figure, hold on
+            plot(obj.timeSinceLastSegment, ...
+                obj.pitchSinceLastSegment .* 180.0 ./ pi, 'Color', 'blue', 'LineWidth', 1.5)
+            plot(obj.timeSinceLastSegment, ...
+                obj.rollSinceLastSegment .* 180.0 ./ pi, 'Color', 'magenta', 'LineWidth', 1.5)
+            plot(obj.timeSinceLastSegment, ...
+                (obj.pitchSinceLastSegment-obj.rollSinceLastSegment) .* 180.0 ./ pi, 'Color', 'black', 'LineWidth', 1.5)
+            xlabel('Time (seconds)', 'FontWeight', 'bold')
+            xlim([obj.timeSinceLastSegment(1), obj.timeSinceLastSegment(end)])
+            ylabel('Angle of IMU with Respect to Gravity (degrees)', 'FontWeight', 'bold')
+            sigPitch = obj.pitchSinceLastSegment .* 180.0 ./ pi;
+            plot(obj.timeSinceLastSegment(obj.signals~=0), ...
+                sigPitch(obj.signals~=0),'k*','LineWidth',1.5);
+            legend('Pitch', 'Roll', 'Pitch - Roll');
             
         end
     end
@@ -377,8 +390,10 @@ classdef DataProcessor < handle
         function [obj] = addDataToStruct(obj, data, time)
             % Convert units and add to the sliding window struct
             g = 9.81; % gravitational constant (m/s^2)
-            A_sens = 16384; % for acceleration limit of 2g
-            G_sens = 131; % for angular velocity limit of 250 degrees / second
+%             A_sens = 16384; % for acceleration limit of 2g
+%             G_sens = 131; % for angular velocity limit of 250 degrees / second
+            A_sens = 1; % for acceleration limit of 2g
+            G_sens = 1; % for angular velocity limit of 250 degrees / second
             Ax = data(1) / A_sens * g; Ay = data(2) / A_sens * g; Az = data(3) / A_sens * g; % m/s^2
             Gx = data(4) / G_sens; Gy = data(5) / G_sens; Gz = data(6) / G_sens; % degrees/s
             Gx_rad = Gx * pi / 180.0; Gy_rad = Gy * pi / 180.0; Gz_rad = Gz * pi / 180.0; % rad/s
