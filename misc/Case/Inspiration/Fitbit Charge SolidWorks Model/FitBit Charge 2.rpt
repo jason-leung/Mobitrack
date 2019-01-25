@@ -1,0 +1,65 @@
+*****************************************************************
+      SolidWorks Corporation - IGES Processor Status Report
+*****************************************************************
+=================================================================
+General Information
+=================================================================
+Sending System Product I.D.  : FitBit Charge 2^FitBit Charge 2.sldprt
+Receiving System Product I.D.: FitBit Charge 2^FitBit Charge 2.sldprt
+File Name                    : D:\HAT_Projects (2016)\3D Printer\Wearables\FitBit\FitBit Charge 2 (body only).IGS
+Sending System               : SolidWorks 2017
+Preprocessor Version         : SolidWorks 2017
+File Creation Date           : 180507.071053
+Model Creation Date          : 180507.071053
+Units                        : MM
+Model Space Scale            : 1
+Author                       : v-leocl
+Organization                 : 
+
+
+=================================================================
+Entity Processing Information
+=================================================================
+
+
+=================================================================
+Precision analysis of IGES file:
+=================================================================
+  Most prevalent number of significant digits:              10
+  Highest number of significant digits:                     11
+  Average number of significant digits:                9.35186
+  Maximum distance to origin:                          23.4369
+  Minimum distance to origin:                          1.47752
+  Effective number of significant digits:              10.9452
+
+
+=================================================================
+Entity Summary
+=================================================================
+-----------------------------------------------------------------
+Type Name                                         Count Converted
+---- ----                                         ----- ---------
+100  Arc                                             96        96
+102  Composite curve                                232       232
+110  Line                                           360       360
+124  Transformation matrix                           62        62
+126  Rational B-spline curve                        694       694
+128  Rational B-spline surface                      110       110
+142  Curve on a parametric surface                  116       116
+144  Trimmed parametric surface                     110       110
+314  Color definition                                 1         1
+_________________________________________________________________
+
+
+=================================================================
+Result Summary
+=================================================================
+SolidWorks Feature Type                Count
+-----------------------                -----
+Solid feature(s)                       3
+Surface feature(s)                     0
+Curve/Sketch feature(s)                0
+--------------------------------------------
+Start time: Thursday, January 10, 2019 00:55:53
+Finish time: Thursday, January 10, 2019 00:56:51
+Processing time: 0 days, 00 hours, 00 mins, 58 secs
