@@ -1,21 +1,11 @@
 from django.shortcuts import render, get_object_or_404
 from django.http import HttpResponse
 from django_tables2 import RequestConfig
-from django.template import RequestContext
 from .models import WearingSession, ExercisePeriod
-from .tables import WearingSessionTable, ExercisePeriodTable
-
+from .tables import ExercisePeriodTable as PTable
 
 def index(request):
-	""" View function for the home page """
-	# Preview of the latest records
-	latestSessions = WearingSession.objects.order_by('-timeStamp')[:5]
-	latestPeriods = ExercisePeriod.objects.order_by('-timeStamp')[:5]
-	
-	# Convert into tabular form
-	sessionsT = WearingSessionTable(list(latestSessions))
-	periodsT = ExercisePeriodTable(list(latestPeriods))
-	return render(request, 'index.html', {'latestSessions':sessionsT, 'latestPeriods':periodsT})
+	return HttpResponse("Displaying database index")
 
 def sessionDetail(request, sessionID):
 	# Query the wearing session database with matching sessionID
@@ -26,9 +16,9 @@ def sessionDetail(request, sessionID):
 	periods = [ExercisePeriod.objects.filter(periodID=pID).get() for pID in pResult]
 
 	# Put it in a tabular form 	
-	table = ExercisePeriodTable(periods)
+	table = PTable(periods)
 	RequestConfig(request).configure(table)
 	
 	wearingSession = get_object_or_404(WearingSession.objects, pk=sessionID)
-	return render(request, 'sessionDetail.html', {'session':session, 'periods':periods, 'table':table})
+	return render(request, 'database/sessionDetail.html', {'session':session, 'periods':periods, 'table':table})
 
