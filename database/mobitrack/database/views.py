@@ -2,9 +2,22 @@ from django.shortcuts import render, get_object_or_404
 from django.http import HttpResponse
 from django_tables2 import RequestConfig
 from django.template import RequestContext
+
+from rest_framework import generics
+
 from .models import WearingSession, ExercisePeriod
 from .tables import WearingSessionTable, ExercisePeriodTable
+from .serializers import WearingSessionSerializer, ExercisePeriodSerializer
 
+# Handling GET and POST request
+class WearingSessionListCreate(generics.ListCreateAPIView):
+	queryset = WearingSession.objects.all()
+	serializer_class = WearingSessionSerializer
+
+# Handling GET and POST request
+class ExercisePeriodListCreate(generics.ListCreateAPIView):
+	queryset = ExercisePeriod.objects.all()
+	serializer_class = ExercisePeriodSerializer
 
 def index(request):
 	""" View function for the home page """
@@ -31,4 +44,4 @@ def sessionDetail(request, sessionID):
 	
 	wearingSession = get_object_or_404(WearingSession.objects, pk=sessionID)
 	return render(request, 'sessionDetail.html', {'session':session, 'periods':periods, 'table':table})
-
+	
