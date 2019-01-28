@@ -94,7 +94,7 @@
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
-eval("__webpack_require__.r(__webpack_exports__);\n/* harmony import */ var react__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! react */ \"./node_modules/react/index.js\");\n/* harmony import */ var react__WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(react__WEBPACK_IMPORTED_MODULE_0__);\n/* harmony import */ var react_dom__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! react-dom */ \"./node_modules/react-dom/index.js\");\n/* harmony import */ var react_dom__WEBPACK_IMPORTED_MODULE_1___default = /*#__PURE__*/__webpack_require__.n(react_dom__WEBPACK_IMPORTED_MODULE_1__);\n/* harmony import */ var _DataProvider__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ./DataProvider */ \"./mobitrack/frontend/src/components/DataProvider.js\");\n/* harmony import */ var _Table__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! ./Table */ \"./mobitrack/frontend/src/components/Table.js\");\n// The App component of the React frontend\n\n\n\n\n\nvar App = function App() {\n  return react__WEBPACK_IMPORTED_MODULE_0___default.a.createElement(_DataProvider__WEBPACK_IMPORTED_MODULE_2__[\"default\"], {\n    endpoint: \"api/lead/\",\n    render: function render(data) {\n      return react__WEBPACK_IMPORTED_MODULE_0___default.a.createElement(_Table__WEBPACK_IMPORTED_MODULE_3__[\"default\"], {\n        data: data\n      });\n    }\n  });\n};\n\nvar wrapper = document.getElementById(\"app\");\nwrapper ? react_dom__WEBPACK_IMPORTED_MODULE_1___default.a.render(react__WEBPACK_IMPORTED_MODULE_0___default.a.createElement(App, null), wrapper) : null;\n\n//# sourceURL=webpack:///./mobitrack/frontend/src/components/App.js?");
+eval("__webpack_require__.r(__webpack_exports__);\n/* harmony import */ var react__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! react */ \"./node_modules/react/index.js\");\n/* harmony import */ var react__WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(react__WEBPACK_IMPORTED_MODULE_0__);\n/* harmony import */ var react_dom__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! react-dom */ \"./node_modules/react-dom/index.js\");\n/* harmony import */ var react_dom__WEBPACK_IMPORTED_MODULE_1___default = /*#__PURE__*/__webpack_require__.n(react_dom__WEBPACK_IMPORTED_MODULE_1__);\n/* harmony import */ var _DataProvider__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ./DataProvider */ \"./mobitrack/frontend/src/components/DataProvider.js\");\n/* harmony import */ var _Table__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! ./Table */ \"./mobitrack/frontend/src/components/Table.js\");\n// The App component of the React frontend\n\n\n\n\n\nvar App = function App() {\n  return react__WEBPACK_IMPORTED_MODULE_0___default.a.createElement(_DataProvider__WEBPACK_IMPORTED_MODULE_2__[\"default\"], {\n    endpoint: \"wearingsession/\",\n    render: function render(data) {\n      return react__WEBPACK_IMPORTED_MODULE_0___default.a.createElement(_Table__WEBPACK_IMPORTED_MODULE_3__[\"default\"], {\n        data: data\n      });\n    }\n  });\n};\n\nvar wrapper = document.getElementById(\"app\");\nwrapper ? react_dom__WEBPACK_IMPORTED_MODULE_1___default.a.render(react__WEBPACK_IMPORTED_MODULE_0___default.a.createElement(App, null), wrapper) : null;\n\n//# sourceURL=webpack:///./mobitrack/frontend/src/components/App.js?");
 
 /***/ }),
 
@@ -122,6 +122,17 @@ eval("__webpack_require__.r(__webpack_exports__);\n/* harmony import */ var reac
 
 /***/ }),
 
+/***/ "./mobitrack/frontend/src/index.css":
+/*!******************************************!*\
+  !*** ./mobitrack/frontend/src/index.css ***!
+  \******************************************/
+/*! no static exports found */
+/***/ (function(module, exports) {
+
+eval("throw new Error(\"Module parse failed: Unexpected token (1:5)\\nYou may need an appropriate loader to handle this file type.\\n> body {\\n|   margin: 0;\\n|   padding: 0;\");\n\n//# sourceURL=webpack:///./mobitrack/frontend/src/index.css?");
+
+/***/ }),
+
 /***/ "./mobitrack/frontend/src/index.js":
 /*!*****************************************!*\
   !*** ./mobitrack/frontend/src/index.js ***!
@@ -130,7 +141,7 @@ eval("__webpack_require__.r(__webpack_exports__);\n/* harmony import */ var reac
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
-eval("__webpack_require__.r(__webpack_exports__);\n/* harmony import */ var _components_App__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./components/App */ \"./mobitrack/frontend/src/components/App.js\");\n\n\n//# sourceURL=webpack:///./mobitrack/frontend/src/index.js?");
+eval("__webpack_require__.r(__webpack_exports__);\n/* harmony import */ var _components_App__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./components/App */ \"./mobitrack/frontend/src/components/App.js\");\n/* harmony import */ var react__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! react */ \"./node_modules/react/index.js\");\n/* harmony import */ var react__WEBPACK_IMPORTED_MODULE_1___default = /*#__PURE__*/__webpack_require__.n(react__WEBPACK_IMPORTED_MODULE_1__);\n/* harmony import */ var react_dom__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! react-dom */ \"./node_modules/react-dom/index.js\");\n/* harmony import */ var react_dom__WEBPACK_IMPORTED_MODULE_2___default = /*#__PURE__*/__webpack_require__.n(react_dom__WEBPACK_IMPORTED_MODULE_2__);\n!(function webpackMissingModule() { var e = new Error(\"Cannot find module 'bootstrap/dist/css/bootstrap.min.css'\"); e.code = 'MODULE_NOT_FOUND'; throw e; }());\n/* harmony import */ var _index_css__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(/*! ./index.css */ \"./mobitrack/frontend/src/index.css\");\n/* harmony import */ var _index_css__WEBPACK_IMPORTED_MODULE_4___default = /*#__PURE__*/__webpack_require__.n(_index_css__WEBPACK_IMPORTED_MODULE_4__);\n\n\n\n\n\nreact_dom__WEBPACK_IMPORTED_MODULE_2___default.a.render(react__WEBPACK_IMPORTED_MODULE_1___default.a.createElement(_components_App__WEBPACK_IMPORTED_MODULE_0__[\"default\"], null), document.getElementById('root'));\n\n//# sourceURL=webpack:///./mobitrack/frontend/src/index.js?");
 
 /***/ }),
 
