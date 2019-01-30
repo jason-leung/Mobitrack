@@ -9,16 +9,23 @@ from .models import WearingSession, ExercisePeriod
 from .tables import WearingSessionTable, ExercisePeriodTable
 from .serializers import WearingSessionSerializer, ExercisePeriodSerializer
 
-# Handling GET and POST request
+
+# Handling GET and POST request for all wearingsession
 class WearingSessionListCreate(generics.ListCreateAPIView):
 	queryset = WearingSession.objects.all()
 	serializer_class = WearingSessionSerializer
 
-# Handling GET and POST request
+# Handling GET and POST request for all wearingsession
+class LatestSessionListCreate(generics.ListCreateAPIView):
+	queryset = WearingSession.objects.order_by('-timeStamp')[:5]
+	serializer_class = WearingSessionSerializer
+
+# Handling GET and POST request for all exerciseperiod
 class ExercisePeriodListCreate(generics.ListCreateAPIView):
 	queryset = ExercisePeriod.objects.all()
 	serializer_class = ExercisePeriodSerializer
 
+# TODO: Revisit the below codes (currently outdated)
 def index(request):
 	""" View function for the home page """
 	# Preview of the latest records
