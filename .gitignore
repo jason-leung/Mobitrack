@@ -16,3 +16,8 @@ processing/results/
 database/mobitrack/env/
 __pycache__/
 database/.DS_Store
+.idea
+
+# Data locations
+data/Jan28ClassifierResults
+data/Jan27ClassifierResults

@@ -1,4 +1,4 @@
-function [] = saveClassifierPerformanceToCSV(currentSVMOptions, trainCP, testCP, filename, timeStruct)
+function [common_name] = saveClassifierPerformanceToCSV(currentSVMOptions, trainCP, testCP, filename, fullFilePath, timeStruct, mdl)
 % This function accepts the current SVM parameters and the classifier
 % performance for the training and testing sets and then saves the
 % performance statistics to a CSV.
@@ -20,7 +20,7 @@ function [] = saveClassifierPerformanceToCSV(currentSVMOptions, trainCP, testCP,
 
 fileExist = exist(filename);
 if(~fileExist)
-    header = ['Time, Feature Set, Id,', ...
+    header = ['Time, Window Size, Id,', ...
     'Training Time (s), Testing Set Classification Time (s), Training Set Classification Time (s),',...
     'Testing - CorrectRate, Testing - Sensitivity, Testing - Specificity, Testing - SampleSize, '...
     'Training - CorrectRate, Training - Sensitivity, Training - Specificity, Training - SampleSize, '...
@@ -41,14 +41,8 @@ for i = 1:length(timeArray) % concatentate and format timestamp
 end
 time = time(1:end-1);
 
-% Format featureSet string
-featureSetString = '';
-for i = 1:length(currentSVMOptions.featureSet) % concatentate and format featureSet into string
-    featureSetString = strcat(featureSetString, num2str(currentSVMOptions.featureSet(i)),'_');
-end
-featureSetString = featureSetString(1:end-1);
 
-basicInfo = sprintf('%s, %s, %s', time, featureSetString, classifierOptions);
+basicInfo = sprintf('%s, %f, %s', time, currentSVMOptions.window_size, classifierOptions);
 
 timeInfo = sprintf('%0.4f, %0.4f, %0.4f', timeStruct.trainingTime, timeStruct.testPredictTime, timeStruct.trainPredictTime);
 
@@ -64,6 +58,11 @@ allData = strcat(basicInfo, ', ', timeInfo, ', ', testingPerformanceInfo, ', ', 
 f = fopen(filename, 'a'); % append to file
 fprintf(f, allData);
 fclose(f);
+
+% Save model
+common_name = sprintf('%f, %s', currentSVMOptions.window_size, classifierOptions);
+saveName = strcat(fullFilePath, filesep, common_name, '.mat');
+save(saveName, 'mdl');
 
 end
 

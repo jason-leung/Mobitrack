@@ -1,4 +1,4 @@
-function [] = runClassificationTests( svmOptions, trainingData, testingData, supplementaryInfo )
+function [] = runClassificationTests( svmOptions, trainingData, testingData, supplementaryInfo, window_size, dataForVisualization, dataForVisualization_formatted )
 % Run the suite of classification tests according to the SVM parameters
 % defined by the calling function.
 %
@@ -26,81 +26,81 @@ testingFeatures = testingData(:, 2:end);
 
 % =========================== Classifier 1 ================================
 % Loop through all possible combinations of svmOptions and feature sets
-% Feature sets
-for featureSetID = 1:length(svmOptions.featureSets)
-    featureSet = svmOptions.featureSets{featureSetID};
-    
-    testingFeatures = testingData(:, featureSet + 1);
-    trainingFeatures = trainingData(:, featureSet + 1);
+testingFeatures = testingFeatures;
+trainingFeatures = trainingFeatures;
 
-    % Standardization
-	for standardID = 1:length(svmOptions.standardize)
-   	 	standardize = svmOptions.standardize{standardID};
-        
-        % Kernel type
-        for kernelID = 1:length(svmOptions.kernel)
-            kernel = svmOptions.kernel{kernelID};
-            
-            % Kernel scale
-            for kernelScaleID = 1:length(svmOptions.kernelScale)
-                kernelScale = svmOptions.kernelScale{kernelScaleID};
-                
-                % Solver type
-                for solverID = 1:length(svmOptions.solver)
-                    solver = svmOptions.solver{solverID};
-                    
-                    % Box Constraint - https://www.mathworks.com/help/stats/fitcsvm.html#bt8v_z4-1
-                    for boxConstraintID = 1:length(svmOptions.boxConstraint)
-                        boxConstraint = svmOptions.boxConstraint{boxConstraintID};
+% Standardization
+for standardID = 1:length(svmOptions.standardize)
+    standardize = svmOptions.standardize{standardID};
+
+    % Kernel type
+    for kernelID = 1:length(svmOptions.kernel)
+        kernel = svmOptions.kernel{kernelID};
+
+        % Kernel scale
+        for kernelScaleID = 1:length(svmOptions.kernelScale)
+            kernelScale = svmOptions.kernelScale{kernelScaleID};
+
+            % Solver type
+            for solverID = 1:length(svmOptions.solver)
+                solver = svmOptions.solver{solverID};
+
+                % Box Constraint - https://www.mathworks.com/help/stats/fitcsvm.html#bt8v_z4-1
+                for boxConstraintID = 1:length(svmOptions.boxConstraint)
+                    boxConstraint = svmOptions.boxConstraint{boxConstraintID};
+
+                    for polynomialOrderID = 1:length(svmOptions.polynomialOrder)
+                        polynomialOrder = svmOptions.polynomialOrder{polynomialOrderID};
+
+                        currentSVMOptions.standardize = standardize;
+                        currentSVMOptions.kernel = kernel;
+                        currentSVMOptions.kernelScale = kernelScale;
+                        currentSVMOptions.solver = solver;
+                        currentSVMOptions.boxConstraint = boxConstraint;
+                        currentSVMOptions.polynomialOrder = polynomialOrder;
+                        currentSVMOptions.window_size = window_size;
+
+                        % Avoid running the non-polynomial kernels with
+                        % different polynomial orders
+                        if(~strcmp(kernel, 'polynomial') && polynomialOrderID > 1)
+                            continue;
+                        end
+
+                        % Train the SVM classifier
+                        tic;
+                        mdl = trainClassifier(currentSVMOptions, trainingFeatures, trainingClassLabels);
+                        trainingTime = toc;
+
+                        % Predict class label and calculate performance
+                        % metrics
+                        tic;
+                        trainPredict = predict(mdl, trainingFeatures);
+                        trainPredictTime = toc;
+
+                        tic;
+                        testPredict = predict(mdl, testingFeatures);
+                        testPredictTime = toc;
+
+                        trainCP = classperf(trainingClassLabels, trainPredict, 'Positive', [1], 'Negative', [0]);
+                        testCP = classperf(testingClassLabels, testPredict, 'Positive', [1], 'Negative', [0]);
+
+                        timeStruct.trainPredictTime = trainPredictTime;
+                        timeStruct.testPredictTime = testPredictTime;
+                        timeStruct.trainingTime = trainingTime;
+
+                       
                         
-                        for polynomialOrderID = 1:length(svmOptions.polynomialOrder)
-                            polynomialOrder = svmOptions.polynomialOrder{polynomialOrderID};
-                            
-                            currentSVMOptions.standardize = standardize;
-                            currentSVMOptions.kernel = kernel;
-                            currentSVMOptions.kernelScale = kernelScale;
-                            currentSVMOptions.solver = solver;
-                            currentSVMOptions.boxConstraint = boxConstraint;
-                            currentSVMOptions.polynomialOrder = polynomialOrder;
-                            currentSVMOptions.featureSet = featureSet;
-                            
-                            % Avoid running the non-polynomial kernels with
-                            % different polynomial orders
-                            if(~strcmp(kernel, 'polynomial') && polynomialOrderID > 1)
-                                continue;
-                            end
-                            
-                            % Train the SVM classifier
-                            tic;
-                            mdl = trainClassifier(currentSVMOptions, trainingFeatures, trainingClassLabels);
-                            trainingTime = toc;
-                            
-                            % Predict class label and calculate performance
-                            % metrics
-                            tic;
-                            trainPredict = predict(mdl, trainingFeatures);
-                            trainPredictTime = toc;
-                            
-                            tic;
-                            testPredict = predict(mdl, testingFeatures);
-                            testPredictTime = toc;
-                            
-                            trainCP = classperf(trainingClassLabels, trainPredict, 'Positive', [1], 'Negative', [0]);
-                            testCP = classperf(testingClassLabels, testPredict, 'Positive', [1], 'Negative', [0]);
-                            
-                            timeStruct.trainPredictTime = trainPredictTime;
-                            timeStruct.testPredictTime = testPredictTime;
-                            timeStruct.trainingTime = trainingTime;
-                            
-                            
-                            % Save the classifier performance results to a CSV
-                            saveClassifierPerformanceToCSV(currentSVMOptions, trainCP, testCP, supplementaryInfo.outputCSV, timeStruct); 
 
-                        end % end polynomialOrder                
-                    end % end boxConstraint
-                end % end solver    
-            end % end kernelScale
-        end % end kernel      
-    end % end standardization
-end
+                        % Save the classifier performance results to a CSV
+                        commonName = saveClassifierPerformanceToCSV(currentSVMOptions, trainCP, testCP, supplementaryInfo.outputCSV, supplementaryInfo.filepaths.full, timeStruct, mdl); 
+
+                        % Test on the visual data 
+                        testAndPlotVisualResults(supplementaryInfo.filepaths.full, commonName, mdl, dataForVisualization, dataForVisualization_formatted, window_size )
+                        
+                    end % end polynomialOrder                
+                end % end boxConstraint
+            end % end solver    
+        end % end kernelScale
+    end % end kernel      
+end % end standardization
 

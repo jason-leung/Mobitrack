@@ -14,9 +14,48 @@ fc = exp(-1); % normalized frequency
 fs = 1/mean(dt); % sampling frequency [Hz]
 
 % Butterworth filter
-[b,a] = butter(1, fc/(fs/2));
-Ax = filter(b,a,Ax); Ay = filter(b,a,Ay); Az = filter(b,a,Az);
-Gx = filter(b,a,Gx); Gy = filter(b,a,Gy); Gz = filter(b,a,Gz);
+[b,a] = butter(1, 0.1);
+
+% Moving average filter
+% filter_size = 50;
+% a = 1;
+% b = ones(1,filter_size);
+% b = b/filter_size;
+% 
+% Ax = filter(b,a,Ax); Ay = filter(b,a,Ay); Az = filter(b,a,Az);
+% Gx = filter(b,a,Gx); Gy = filter(b,a,Gy); Gz = filter(b,a,Gz);
+window_size = 50;
+Ax_out = [];
+Ay_out = [];
+Az_out = [];
+Gx_out = [];
+Gy_out = [];
+Gz_out = [];
+for i = 1:length(Ax)
+    if(i <= window_size)
+        Ax_out = [Ax_out; mean(Ax(1:i))];
+        Ay_out = [Ay_out; mean(Ay(1:i))];
+        Az_out = [Az_out; mean(Az(1:i))];
+        Gx_out = [Gx_out; mean(Gx(1:i))];
+        Gy_out = [Gy_out; mean(Gy(1:i))];
+        Gz_out = [Gz_out; mean(Gz(1:i))];
+    else
+        Ax_out = [Ax_out; mean(Ax(i-window_size:i))];
+        Ay_out = [Ay_out; mean(Ay(i-window_size:i))];
+        Az_out = [Az_out; mean(Az(i-window_size:i))];
+        Gx_out = [Gx_out; mean(Gx(i-window_size:i))];
+        Gy_out = [Gy_out; mean(Gy(i-window_size:i))];
+        Gz_out = [Gz_out; mean(Gz(i-window_size:i))];
+    end
+end
+Ax = Ax_out;
+Ay = Ay_out;
+Az = Az_out;
+Gx = Gx_out;
+Gy = Gy_out;
+Gz = Gz_out;
+
+
 
 %% Convert data to proper units
 g = 9.81; % gravitational constant (m/s^2)
