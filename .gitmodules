@@ -1,0 +1,3 @@
+[submodule "Metamotion/MetaWear-SDK-Python"]
+	path = Metamotion/MetaWear-SDK-Python
+	url = https://github.com/mbientlab/MetaWear-SDK-Python
