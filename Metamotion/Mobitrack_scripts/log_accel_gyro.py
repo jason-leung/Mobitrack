@@ -9,9 +9,9 @@ from sys import argv
 import os
 
 
-seconds_to_stream = 100
-filename = "ll_rest_01.txt"
-data_folder_name = "../data/MetaMotion"
+seconds_to_stream = 60
+filename = "rest_01.txt"
+data_folder_name = "../../data/MetaMotion"
 
 
 states = []
