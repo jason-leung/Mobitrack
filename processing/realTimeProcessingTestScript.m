@@ -1,12 +1,20 @@
-close all, clear all, clc
+% close all, clear all, clc
 
 %% Load data
 % filename = 'C:\Users\Jason\Desktop\Mobitrack\data\Nov21\RA_flx_full_1.mat';
 % filename = 'C:\Users\Jason\Desktop\Mobitrack\data\Nov21\RA_noise_4.mat';
-filename = 'C:\Users\Jason\Desktop\Mobitrack\data\Nov22\RA_mixed_2.mat';
+% filename = 'C:\Users\Jason\Desktop\Mobitrack\data\Nov22\RA_mixed_2.mat';
+% filename = 'C:\Users\Jason\Desktop\Mobitrack\data\Jan15\data_active_exercise_ra_01.mat';
+% filename = 'C:\Users\Jason\Desktop\Mobitrack\data\Jan15\data_eating_la_01.mat';
+% filename = 'C:\Users\Jason\Desktop\Mobitrack\data\Jan15\data_exercise_la_01.mat';
+% filename = 'C:\Users\Jason\Desktop\Mobitrack\data\Jan15\data_small_exercise_ra_01.mat';
+% filename = 'C:\Users\Jason\Desktop\Mobitrack\data\Jan15\data_typing_01.mat';
+% filename = 'C:\Users\Jason\Desktop\Mobitrack\data\Jan25\data_jan25_la_flexion.mat';
+filename = 'C:\Users\Jason\Desktop\Mobitrack\data\Jan25\data_jan25_la_flexion_02.mat';
+% filename = 'C:\Users\Jason\Desktop\Mobitrack\data\Jan25\data_ll_exercise_01.mat';
 data = load(filename);
 
-% Load Classifier
+%% Load Classifier
 classifier = load('C:\Users\Jason\Desktop\Mobitrack\processing\classifiers\classifier_nov21.mat');
 SVMModel = classifier.SVMModel;
 
