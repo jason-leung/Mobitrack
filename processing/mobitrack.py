@@ -96,14 +96,13 @@ class Mobitrack:
     
     def calibrateData(self, data):
         # calibrate data by dividing by sensitivity
-        # convert gyroscope measurements to radians per second
         data[1:4] = data[1:4] / self.calibrationAsens * self.calibrationG
-        data[4:7] = data[4:7] / self.calibrationGsens * np.pi / 180.0
+        data[4:7] = data[4:7] / self.calibrationGsens
         return data
     
     def preprocessData(self):
         # smooth data with a moving average for specified window size
-        smoothData = self.rawData[-1,:]
+        smoothData = np.copy(self.rawData[-1,:])
             
         startSumIdx = 0
         if self.numSamplesSeen >= self.smoothWindowSize:
@@ -114,7 +113,7 @@ class Mobitrack:
         return smoothData
     
     def computeRotationAngles(self):
-        # compute pitch and roll using complementar filter
+        # compute pitch and roll using complementary filter
         
         # initialize variables
         data = self.smoothData[-1,:]
@@ -122,8 +121,8 @@ class Mobitrack:
         angle_est[0] = data[0]
         
         # estimate pitch and roll based on acceleration
-        pitch_est_acc = np.arctan2(data[2], np.sqrt(data[1]**2 + data[3]**2)) # range [-90, 90]
-        roll_est_acc = np.arctan2(data[1], np.sqrt(data[2]**2 + data[3]**2)) # range [-90, 90]
+        pitch_est_acc = np.rad2deg(np.arctan2(data[2], np.sqrt(data[1]**2 + data[3]**2))) # range [-90, 90]
+        roll_est_acc = np.rad2deg(np.arctan2(data[1], np.sqrt(data[2]**2 + data[3]**2))) # range [-90, 90]
         
         # use acceleration data only for first sample
         if(self.numSamplesSeen == 0):
@@ -182,21 +181,21 @@ class Mobitrack:
         return -1
     
     def plotData(self):
-        plt.plot(self.data[:,0], self.data[:,1] * 180.0 / np.pi , label='Pitch')
-        plt.plot(self.data[:,0], self.data[:,2] * 180.0 / np.pi, label='Roll')
+        plt.plot(self.data[:,0], self.data[:,1] , label='Pitch')
+        plt.plot(self.data[:,0], self.data[:,2], label='Roll')
         
         plt.xlabel('Time (s)')
         plt.ylabel('Angle')
         plt.legend()
         plt.show()
-    
+
     def plotRawData(self):
         plt.plot(self.rawData[:,0], self.rawData[:,1], label='ax')
         plt.plot(self.rawData[:,0], self.rawData[:,2], label='ay')
         plt.plot(self.rawData[:,0], self.rawData[:,3], label='az')
-        plt.plot(self.rawData[:,0], self.rawData[:,4] * 180.0 / np.pi, label='gx')
-        plt.plot(self.rawData[:,0], self.rawData[:,5] * 180.0 / np.pi, label='gy')
-        plt.plot(self.rawData[:,0], self.rawData[:,6] * 180.0 / np.pi, label='gz')
+        plt.plot(self.rawData[:,0], self.rawData[:,4], label='gx')
+        plt.plot(self.rawData[:,0], self.rawData[:,5], label='gy')
+        plt.plot(self.rawData[:,0], self.rawData[:,6], label='gz')
         
         plt.xlabel('Time (s)')
         plt.ylabel('Raw IMU Readings (a in m/s^2, g in rad/s)')
@@ -207,9 +206,9 @@ class Mobitrack:
         plt.plot(self.smoothData[:,0], self.smoothData[:,1], label='ax')
         plt.plot(self.smoothData[:,0], self.smoothData[:,2], label='ay')
         plt.plot(self.smoothData[:,0], self.smoothData[:,3], label='az')
-        plt.plot(self.smoothData[:,0], self.smoothData[:,4] * 180.0 / np.pi, label='gx')
-        plt.plot(self.smoothData[:,0], self.smoothData[:,5] * 180.0 / np.pi, label='gy')
-        plt.plot(self.smoothData[:,0], self.smoothData[:,6] * 180.0 / np.pi, label='gz')
+        plt.plot(self.smoothData[:,0], self.smoothData[:,4], label='gx')
+        plt.plot(self.smoothData[:,0], self.smoothData[:,5], label='gy')
+        plt.plot(self.smoothData[:,0], self.smoothData[:,6], label='gz')
         
         plt.xlabel('Time (s)')
         plt.ylabel('Smoothed IMU Readings (a in m/s^2, g in rad/s)')
