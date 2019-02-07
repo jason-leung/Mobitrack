@@ -16,3 +16,9 @@ processing/results/
 database/mobitrack/env/
 __pycache__/
 database/.DS_Store
+.idea
+Metamotion/Mobitrack_scripts/.metawear
+
+# Data locations
+data/Jan28ClassifierResults
+data/Jan27ClassifierResults
