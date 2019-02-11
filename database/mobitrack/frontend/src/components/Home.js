@@ -3,7 +3,6 @@ import React from "react";
 import ReactDOM from "react-dom";
 import DataProvider from "./DataProvider";
 import Table from "./Table";
-import Sidebar from "./Sidebar";
 
 const Home = () => (
   <DataProvider endpoint="database/latestsession/" 
