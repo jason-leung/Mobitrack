@@ -3,4 +3,6 @@
 - Python3 (required to for Django)
 - Django version > 2.0 (i.e. version 2.1.3)
 - Virtualenv version 16.1.0
-- django-tables2 version 2.0.3
+- django-tables2 version 2.0.3 (outdated; no longer used)
+- djangorestframework
+- nodeJS version > 10.15.0 LTS

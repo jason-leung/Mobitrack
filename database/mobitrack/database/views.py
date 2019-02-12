@@ -1,24 +1,24 @@
 from django.shortcuts import render, get_object_or_404
 from django.http import HttpResponse
-from django_tables2 import RequestConfig
+from django.template import RequestContext
+
+from rest_framework import generics
+
 from .models import WearingSession, ExercisePeriod
-from .tables import ExercisePeriodTable as PTable
+from .serializers import WearingSessionSerializer, ExercisePeriodSerializer
 
-def index(request):
-	return HttpResponse("Displaying database index")
 
-def sessionDetail(request, sessionID):
-	# Query the wearing session database with matching sessionID
-	session = WearingSession.objects.filter(sessionID=sessionID).get()
+# Handling GET and POST request for all wearingsession
+class WearingSessionListCreate(generics.ListCreateAPIView):
+	queryset = WearingSession.objects.all()
+	serializer_class = WearingSessionSerializer
 
-	# Query the exercise period database with matching sessionID
-	pResult = ExercisePeriod.objects.filter(sessionID_id=sessionID).select_related('sessionID').all()
-	periods = [ExercisePeriod.objects.filter(periodID=pID).get() for pID in pResult]
+# Handling GET and POST request for all wearingsession
+class LatestSessionListCreate(generics.ListCreateAPIView):
+	queryset = WearingSession.objects.order_by('-timeStamp')[:5]
+	serializer_class = WearingSessionSerializer
 
-	# Put it in a tabular form 	
-	table = PTable(periods)
-	RequestConfig(request).configure(table)
-	
-	wearingSession = get_object_or_404(WearingSession.objects, pk=sessionID)
-	return render(request, 'database/sessionDetail.html', {'session':session, 'periods':periods, 'table':table})
-
+# Handling GET and POST request for all exerciseperiod
+class ExercisePeriodListCreate(generics.ListCreateAPIView):
+	queryset = ExercisePeriod.objects.all()
+	serializer_class = ExercisePeriodSerializer

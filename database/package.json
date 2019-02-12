@@ -1,0 +1,32 @@
+{
+  "name": "database",
+  "version": "1.0.0",
+  "description": "The following documentation contains information regards to design choices made related to database & required packages.",
+  "main": "index.js",
+  "scripts": {
+    "dev": "webpack --mode development ./mobitrack/frontend/src/index.js --output ./mobitrack/frontend/static/frontend/main.js",
+    "build": "webpack --mode production ./mobitrack/frontend/src/index.js --output ./mobitrack/frontend/static/frontend/main.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "@babel/core": "^7.2.2",
+    "@babel/preset-env": "^7.3.1",
+    "@babel/preset-react": "^7.0.0",
+    "babel-loader": "^8.0.5",
+    "babel-plugin-transform-class-properties": "^6.24.1",
+    "prop-types": "^15.6.2",
+    "react": "^16.8.1",
+    "react-dom": "^16.7.0",
+    "weak-key": "^1.0.1",
+    "webpack": "^4.29.0",
+    "webpack-bundle-tracker": "^0.4.2-beta",
+    "webpack-cli": "^3.2.1"
+  },
+  "dependencies": {
+    "@trendmicro/react-sidenav": "^0.4.5",
+    "jquery": "^3.3.1",
+    "popper.js": "^1.14.7"
+  }
+}

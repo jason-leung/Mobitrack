@@ -35,9 +35,5 @@ For Mobitrack, MySQL is used due to multiple reasons
 	8 You can see the table-formatted contents based on the sessionID by using following address
 		- http://127.0.0.1:8000/database/sessionID/
 		- ex: http://127.0.0.1:8000/database/e8495e1e36ba48b7/
-	9 Entering http://127.0.0.1:8000/ will hit the homepage
-	10 Entering http://127.0.0.1:8000/wearingsession will hit the wearing session page
-	11 (TODO) Implementing search function 
-	12 (TODO) Export into csv format
 			
 	
