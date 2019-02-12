@@ -35,7 +35,7 @@ class Mobitrack:
         
         # segmentation
         self.segmentWindow = 100
-        self.segmentMinPkDist = 15
+        self.segmentMinPkDist = 50
         self.segmentPkThr = 0.5
         self.segmentMaxPk2PkDist = 20000
         
@@ -65,31 +65,34 @@ class Mobitrack:
         
         # peak detection
         isPeak = self.detectPeaks()
+        
         if isPeak == 1:
             if len(self.peaks) == self.eventStorageWindowSize:
-                self.peaks = self.peaks[1:]
+                self.peaks = np.copy(self.peaks[1:])
             self.peaks = np.append(self.peaks, self.numSamplesSeen - np.round(self.segmentWindow/2).astype(int))
             self.last_pk = self.numSamplesSeen - np.round(self.segmentWindow/2).astype(int)
         elif isPeak == -1:
             if len(self.valleys) == self.eventStorageWindowSize:
-                self.valleys = self.valleys[1:]
+                self.valleys = np.copy(self.valleys[1:])
             self.valleys = np.append(self.valleys, self.numSamplesSeen - np.round(self.segmentWindow/2).astype(int))
             self.last_pk = self.numSamplesSeen - np.round(self.segmentWindow/2).astype(int)
         
         # detect segments
-        isSegment = self.detectSegment()
+        isSegment = -1
+        if isPeak != 0: isSegment = self.detectSegment()
         if isSegment != -1:
             if len(self.segments) == self.eventStorageWindowSize:
-                self.segments = self.segments[1:]
+                self.segments = np.copy(self.segments[1:])
             self.segments = np.append(self.segments, isSegment)
         
         # detect segments
-        isRep = self.detectRepetition()
+        isRep = -1
+        if isSegment != -1: isRep = self.detectRepetition()
         if isRep != -1:
             if len(self.reps) == self.eventStorageWindowSize:
-                self.reps = self.reps[1:]
+                self.reps = np.copy(self.reps[1:])
             self.reps = np.append(self.reps, isRep)
-            print("Index: ", i, "Repetition Detected!")
+            print("idx:", isRep, " - Repetition Detected!")
         
         # increment numSamplesSeen
         self.numSamplesSeen += 1
@@ -149,8 +152,8 @@ class Mobitrack:
         
         # find center point
         pitch = self.data[-self.segmentWindow:,1]
-        center_idx = len(pitch) - np.round(self.segmentWindow/2).astype(int)
-        center = pitch[center_idx]
+        center_idx = self.numSamplesSeen - np.round(self.segmentWindow/2).astype(int)
+        center = pitch[np.round(self.segmentWindow/2).astype(int)]
         
         # check for min dist
         if (self.last_pk == -1) or (center_idx - self.last_pk) >= self.segmentMinPkDist:
@@ -165,7 +168,7 @@ class Mobitrack:
         # segment detection, returns index if segment found, -1 otherwise
         if len(self.peaks) >= 2 and len(self.valleys) >= 1:
             if self.numSamplesSeen - np.round(self.segmentWindow/2).astype(int) == self.peaks[-1]:
-                if self.peaks[-2] > self.valleys[-1] > self.peaks[-2]:
+                if self.peaks[-1] > self.valleys[-1] and self.valleys[-1] > self.peaks[-2]:
                     if (self.peaks[-1] - self.peaks[-2]) <= self.segmentMaxPk2PkDist:
                         return self.peaks[-1]
         return -1
@@ -174,22 +177,34 @@ class Mobitrack:
         # repetition detection, returns index if rep found, -1 otherwise
         if len(self.peaks) >= 2 and len(self.valleys) >= 1:
             if self.numSamplesSeen - np.round(self.segmentWindow/2).astype(int) == self.peaks[-1]:
-                ROM_f = self.data[self.peaks[-1]] - self.data[self.valleys[-1]]
-                ROM_b = self.data[self.peaks[-2]] - self.data[self.valleys[-1]]
-                if np.min(ROM_f, ROM_b) >= self.minROM:
+                ROM_f = self.data[self.peaks[-1],1] - self.data[self.valleys[-1],1]
+                ROM_b = self.data[self.peaks[-2],1] - self.data[self.valleys[-1],1]
+                print("ROM:", round(min(ROM_f, ROM_b), 2))
+                if min(ROM_f, ROM_b) >= self.minROM:
                     return self.peaks[-1]
         return -1
     
     def plotData(self):
+        plt.figure(figsize=(20,10))
+        
         plt.plot(self.data[:,0], self.data[:,1] , label='Pitch')
-        plt.plot(self.data[:,0], self.data[:,2], label='Roll')
+#         plt.plot(self.data[:,0], self.data[:,2], label='Roll')
+        
+        plt.plot(self.data[self.peaks,0], self.data[self.peaks,1], 'yx', label='Peaks')
+        plt.plot(self.data[self.valleys,0], self.data[self.valleys,1], 'mx', label='Valleys')
+        plt.plot(self.data[self.reps,0], self.data[self.reps,1], 'g.', label='Reps')
         
         plt.xlabel('Time (s)')
         plt.ylabel('Angle')
         plt.legend()
+        
+        plt.savefig(f.replace('.txt', '.png'))
+        
         plt.show()
 
     def plotRawData(self):
+        plt.figure(figsize=(20,10))
+        
         plt.plot(self.rawData[:,0], self.rawData[:,1], label='ax')
         plt.plot(self.rawData[:,0], self.rawData[:,2], label='ay')
         plt.plot(self.rawData[:,0], self.rawData[:,3], label='az')
@@ -200,9 +215,13 @@ class Mobitrack:
         plt.xlabel('Time (s)')
         plt.ylabel('Raw IMU Readings (a in m/s^2, g in rad/s)')
         plt.legend()
+        
+        plt.savefig(f.replace('.txt', '_raw.png'))
+        
         plt.show()
         
     def plotSmoothData(self):
+        plt.figure(figsize=(20,10))
         plt.plot(self.smoothData[:,0], self.smoothData[:,1], label='ax')
         plt.plot(self.smoothData[:,0], self.smoothData[:,2], label='ay')
         plt.plot(self.smoothData[:,0], self.smoothData[:,3], label='az')
@@ -213,18 +232,44 @@ class Mobitrack:
         plt.xlabel('Time (s)')
         plt.ylabel('Smoothed IMU Readings (a in m/s^2, g in rad/s)')
         plt.legend()
+        
+        plt.savefig(f.replace('.txt', '_smooth.png'))
+        
         plt.show()
+        
+    def clear(self):
+        # variable initialization
+        self.rawData = np.empty((0,7)) # time, ax, ay, az, gx, gy, gz
+        self.smoothData = np.empty((0,7)) # time, ax, ay, az, gx, gy, gz
+        self.data = np.empty((0,3)) # time, pitch, roll
+        self.numSamplesSeen = 0
+        
+        # peak detection
+        self.last_pk = -1
+        self.peaks = np.empty(0,dtype=int)
+        self.valleys = np.empty(0,dtype=int)
+        self.segments = np.empty(0,dtype=int)
+        self.reps = np.empty(0,dtype=int)
 
+
+import os
 
 m = Mobitrack()
 
-filename = '/home/jason/Downloads/Jan25_AndreaSOP_Left/data_wrist_full.txt'
-data = pd.read_csv(filename).values
-data[:,0] = (data[:,0] - data[0,0]) / 1000
+data_dir = '/home/jason/Downloads/Jan25_AndreaSOP_Left'
+files = [os.path.join(data_dir, f) for f in os.listdir(data_dir) if os.path.isfile(os.path.join(data_dir, f)) and f.endswith('.txt')]
+print(files)
 
-for i in range(data.shape[0]):
-    m.processStep(data[i,:])
-
-m.plotData()
-m.plotRawData()
-m.plotSmoothData()
+for f in files:
+    data = pd.read_csv(f).values
+    data[:,0] = (data[:,0] - data[0,0]) / 1000
+    
+    print(f)
+    for i in range(data.shape[0]):
+        m.processStep(data[i,:])
+    
+    m.plotData()
+#     m.plotRawData()
+#     m.plotSmoothData()
+    m.clear()
+    
