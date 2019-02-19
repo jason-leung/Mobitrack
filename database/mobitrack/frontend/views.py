@@ -5,3 +5,6 @@ def index(request):
 
 def wearingsession(request):
     return render(request, 'frontend/wearingsession.html')
+    
+def sessiondetails(request):
+    return render(request, 'frontend/sessiondetails.html')

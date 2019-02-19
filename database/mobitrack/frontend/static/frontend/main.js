@@ -110,6 +110,18 @@ eval("__webpack_require__.r(__webpack_exports__);\n/* harmony import */ var reac
 
 /***/ }),
 
+/***/ "./mobitrack/frontend/src/components/SessionDetails.js":
+/*!*************************************************************!*\
+  !*** ./mobitrack/frontend/src/components/SessionDetails.js ***!
+  \*************************************************************/
+/*! no exports provided */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+eval("__webpack_require__.r(__webpack_exports__);\n/* harmony import */ var react__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! react */ \"./node_modules/react/index.js\");\n/* harmony import */ var react__WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(react__WEBPACK_IMPORTED_MODULE_0__);\n/* harmony import */ var react_dom__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! react-dom */ \"./node_modules/react-dom/index.js\");\n/* harmony import */ var react_dom__WEBPACK_IMPORTED_MODULE_1___default = /*#__PURE__*/__webpack_require__.n(react_dom__WEBPACK_IMPORTED_MODULE_1__);\n/* harmony import */ var _DataProvider__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ./DataProvider */ \"./mobitrack/frontend/src/components/DataProvider.js\");\n/* harmony import */ var _Table__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! ./Table */ \"./mobitrack/frontend/src/components/Table.js\");\n// The Wearing Session component of the React frontend\n\n\n\n\n\nvar SessionDetails = function SessionDetails() {\n  return react__WEBPACK_IMPORTED_MODULE_0___default.a.createElement(_DataProvider__WEBPACK_IMPORTED_MODULE_2__[\"default\"], {\n    endpoint: \"database/exerciseperiod/<sessionID>/\",\n    render: function render(data) {\n      return react__WEBPACK_IMPORTED_MODULE_0___default.a.createElement(_Table__WEBPACK_IMPORTED_MODULE_3__[\"default\"], {\n        data: data\n      });\n    }\n  });\n};\n\nvar wrapper = document.getElementById(\"sessiondetails\");\nvar sessionID = data.sessionID;\nwrapper ? react_dom__WEBPACK_IMPORTED_MODULE_1___default.a.render(react__WEBPACK_IMPORTED_MODULE_0___default.a.createElement(SessionDetails, null), wrapper, sessionID) : null;\n\n//# sourceURL=webpack:///./mobitrack/frontend/src/components/SessionDetails.js?");
+
+/***/ }),
+
 /***/ "./mobitrack/frontend/src/components/Table.js":
 /*!****************************************************!*\
   !*** ./mobitrack/frontend/src/components/Table.js ***!
@@ -142,7 +154,7 @@ eval("__webpack_require__.r(__webpack_exports__);\n/* harmony import */ var reac
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
-eval("__webpack_require__.r(__webpack_exports__);\n/* harmony import */ var jquery__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! jquery */ \"./node_modules/jquery/dist/jquery.js\");\n/* harmony import */ var jquery__WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(jquery__WEBPACK_IMPORTED_MODULE_0__);\n/* harmony import */ var popper_js__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! popper.js */ \"./node_modules/popper.js/dist/esm/popper.js\");\n/* harmony import */ var _components_Home__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ./components/Home */ \"./mobitrack/frontend/src/components/Home.js\");\n/* harmony import */ var _components_WearingSession__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! ./components/WearingSession */ \"./mobitrack/frontend/src/components/WearingSession.js\");\n\n\n\n\n\n//# sourceURL=webpack:///./mobitrack/frontend/src/index.js?");
+eval("__webpack_require__.r(__webpack_exports__);\n/* harmony import */ var jquery__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! jquery */ \"./node_modules/jquery/dist/jquery.js\");\n/* harmony import */ var jquery__WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(jquery__WEBPACK_IMPORTED_MODULE_0__);\n/* harmony import */ var popper_js__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! popper.js */ \"./node_modules/popper.js/dist/esm/popper.js\");\n/* harmony import */ var _components_Home__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ./components/Home */ \"./mobitrack/frontend/src/components/Home.js\");\n/* harmony import */ var _components_WearingSession__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! ./components/WearingSession */ \"./mobitrack/frontend/src/components/WearingSession.js\");\n/* harmony import */ var _components_SessionDetails__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(/*! ./components/SessionDetails */ \"./mobitrack/frontend/src/components/SessionDetails.js\");\n\n\n\n\n\n\n//# sourceURL=webpack:///./mobitrack/frontend/src/index.js?");
 
 /***/ }),
 

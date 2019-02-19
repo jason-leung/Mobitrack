@@ -20,5 +20,5 @@ class LatestSessionListCreate(generics.ListCreateAPIView):
 
 # Handling GET and POST request for all exerciseperiod
 class ExercisePeriodListCreate(generics.ListCreateAPIView):
-	queryset = ExercisePeriod.objects.all()
+	queryset = ExercisePeriod.objects.filter(sessionID='1f858e82313c4ca9')
 	serializer_class = ExercisePeriodSerializer
