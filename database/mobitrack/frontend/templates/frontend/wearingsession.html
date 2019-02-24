@@ -41,12 +41,13 @@
 			<div class="col-sm-10 ">
 				<h1>All Wearing Sessions</h1>
 				<!-- Search form -->
-				<div class="active-purple-3 active-purple-4 mb-4">
-				  <input class="form-control" type="text" placeholder="Search" aria-label="Search">
-				</div>
+				<form class="form-inline active-purple-4">
+				  <input class="form-control form-control-sm mr-3 w-75" type="text" placeholder="Search" aria-label="Search">
+				  <button class="btn btn-outline-success btn-rounded btn-sm my-0" type="submit">Search</button>
+				</form>
 				{% block content %}
 				<div class="container">
-					  <div id="wearingsession" class="columns"><!-- React --></div>
+				  <div id="wearingsession" class="columns"><!-- React --></div>
 				</div>
 				{% endblock %}
 			</div>

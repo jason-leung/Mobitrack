@@ -4,3 +4,5 @@ import Popper from 'popper.js';
 import Home from "./components/Home";
 import WearingSession from "./components/WearingSession";
 import SessionDetails from "./components/SessionDetails";
+import Search from "./components/Search";
+
