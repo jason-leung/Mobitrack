@@ -14,13 +14,17 @@ For Mobitrack, MySQL is used due to multiple reasons
 
 3. Procedure (WIP)
 - Follow the below order to achieve a functional database that you can interact through web application or terminal
+	0 Install root pip packages
+		- install mysql connector and virtualenv pip packages
+		- pip install -r requirements_1.txt
 	1 Run 'createDatabase.py' to create the database and the tables
 		- python createDatabase.py
 	2 Create virtualenv under './mobitrack' folder & activate
 		- virtualenv env
-		- (To activate) source env/bin/activate
+		- (To activate) source env/bin/activate (on windows .\env\Scripts\activate.ps1)
 		- (To deactivate) deactivate
 	3 Install all the required packages in virtualenv (i.e. pip)
+		- pip install -r requirements.txt (This should only be run once the virtualenv is activated)
 	4 (Whenever applicable) Launch the development server
 		- python manage.py runserver
 	5 Run 'insertMockData.py' to generate data for both tables; each run adds 1 row to wearing session table and 1-5 exercise period table
