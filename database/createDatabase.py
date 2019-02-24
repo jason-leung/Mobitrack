@@ -11,6 +11,13 @@ db = mysql.connector.connect (
 
 mycursor = db.cursor()
 
+try:
+	sql_Delete_query = """DROP DATABASE mobitrack"""
+	mycursor.execute(sql_Delete_query)
+	print ("mobitrack databse Deleted successfully ")
+except:
+	print ("mobitrack database did not originally exist ")
+
 # Create database if it doesn't exist
 mycursor.execute("CREATE DATABASE IF NOT EXISTS mobitrack")
 mycursor.execute("USE mobitrack")
