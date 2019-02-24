@@ -38,6 +38,7 @@ class Mobitrack:
         self.segmentMinPkDist = 50
         self.segmentPkThr = 0.5
         self.segmentMaxPk2PkDist = 20000
+        self.wearLocation = 'RA' # RA, LA, RL, LL
         
         # rep detection
         self.minROM = 40
@@ -124,8 +125,8 @@ class Mobitrack:
         angle_est[0] = data[0]
         
         # estimate pitch and roll based on acceleration
-        pitch_est_acc = np.rad2deg(np.arctan2(data[2], np.sqrt(data[1]**2 + data[3]**2))) # range [-90, 90]
-        roll_est_acc = np.rad2deg(np.arctan2(data[1], np.sqrt(data[2]**2 + data[3]**2))) # range [-90, 90]
+        pitch_est_acc = np.rad2deg(np.arctan2(data[1], np.sqrt(data[2]**2 + data[3]**2))) # range [-90, 90]
+        roll_est_acc = np.rad2deg(np.arctan2(data[2], np.sqrt(data[1]**2 + data[3]**2))) # range [-90, 90]
         
         # use acceleration data only for first sample
         if(self.numSamplesSeen == 0):
@@ -166,29 +167,45 @@ class Mobitrack:
     
     def detectSegment(self):
         # segment detection, returns index if segment found, -1 otherwise
-        if len(self.peaks) >= 2 and len(self.valleys) >= 1:
-            if self.numSamplesSeen - np.round(self.segmentWindow/2).astype(int) == self.peaks[-1]:
-                if self.peaks[-1] > self.valleys[-1] and self.valleys[-1] > self.peaks[-2]:
-                    if (self.peaks[-1] - self.peaks[-2]) <= self.segmentMaxPk2PkDist:
-                        return self.peaks[-1]
+        if self.wearLocation == 'RA' or self.wearLocation == 'LA':
+            if len(self.peaks) >= 2 and len(self.valleys) >= 1:
+                if self.numSamplesSeen - np.round(self.segmentWindow/2).astype(int) == self.peaks[-1]:
+                    if self.peaks[-1] > self.valleys[-1] and self.valleys[-1] > self.peaks[-2]:
+                        if (self.peaks[-1] - self.peaks[-2]) <= self.segmentMaxPk2PkDist:
+                            return self.peaks[-1]
+        elif self.wearLocation == 'RL' or self.wearLocation == 'LL':
+            if len(self.peaks) >= 1 and len(self.valleys) >= 2:
+                if self.numSamplesSeen - np.round(self.segmentWindow/2).astype(int) == self.valleys[-1]:
+                    if self.valleys[-1] > self.peaks[-1] and self.peaks[-1] > self.valleys[-2]:
+                        if (self.valleys[-1] - self.valleys[-2]) <= self.segmentMaxPk2PkDist:
+                            return self.valleys[-1]
         return -1
     
     def detectRepetition(self):
         # repetition detection, returns index if rep found, -1 otherwise
-        if len(self.peaks) >= 2 and len(self.valleys) >= 1:
-            if self.numSamplesSeen - np.round(self.segmentWindow/2).astype(int) == self.peaks[-1]:
-                ROM_f = self.data[self.peaks[-1],1] - self.data[self.valleys[-1],1]
-                ROM_b = self.data[self.peaks[-2],1] - self.data[self.valleys[-1],1]
-                print("ROM:", round(min(ROM_f, ROM_b), 2))
-                if min(ROM_f, ROM_b) >= self.minROM:
-                    return self.peaks[-1]
+        if self.wearLocation == 'RA' or self.wearLocation == 'LA':
+            if len(self.peaks) >= 2 and len(self.valleys) >= 1:
+                if self.numSamplesSeen - np.round(self.segmentWindow/2).astype(int) == self.peaks[-1]:
+                    ROM_f = self.data[self.peaks[-1],1] - self.data[self.valleys[-1],1]
+                    ROM_b = self.data[self.peaks[-2],1] - self.data[self.valleys[-1],1]
+                    print("ROM:", round(min(ROM_f, ROM_b), 2))
+                    if min(ROM_f, ROM_b) >= self.minROM:
+                        return self.peaks[-1]
+        elif self.wearLocation == 'RL' or self.wearLocation == 'LL':
+            if len(self.peaks) >= 1 and len(self.valleys) >= 2:
+                if self.numSamplesSeen - np.round(self.segmentWindow/2).astype(int) == self.valleys[-1]:
+                    ROM_f = self.data[self.peaks[-1],1] - self.data[self.valleys[-1],1]
+                    ROM_b = self.data[self.peaks[-1],1] - self.data[self.valleys[-2],1]
+                    print("ROM:", round(min(ROM_f, ROM_b), 2))
+                    if min(ROM_f, ROM_b) >= self.minROM:
+                        return self.peaks[-1]
         return -1
     
     def plotData(self):
         plt.figure(figsize=(20,10))
         
         plt.plot(self.data[:,0], self.data[:,1] , label='Pitch')
-#         plt.plot(self.data[:,0], self.data[:,2], label='Roll')
+        plt.plot(self.data[:,0], self.data[:,2], label='Roll')
         
         plt.plot(self.data[self.peaks,0], self.data[self.peaks,1], 'yx', label='Peaks')
         plt.plot(self.data[self.valleys,0], self.data[self.valleys,1], 'mx', label='Valleys')
@@ -258,11 +275,23 @@ m = Mobitrack()
 
 data_dir = '/home/jason/Downloads/Jan25_AndreaSOP_Left'
 files = [os.path.join(data_dir, f) for f in os.listdir(data_dir) if os.path.isfile(os.path.join(data_dir, f)) and f.endswith('.txt')]
-print(files)
+print(files,"\n")
 
 for f in files:
     data = pd.read_csv(f).values
     data[:,0] = (data[:,0] - data[0,0]) / 1000
+
+    # set wear location
+    if 'Left' in f or 'left' in f:
+        if 'forearm' in f or 'wrist' in f:
+            m.wearLocation = 'LA'
+        elif 'ankle' in f or 'shank' in f:
+            m.wearLocation = 'LL'
+    elif 'Right' in f or 'right' in f:
+        if 'forearm' in f or 'wrist' in f:
+            m.wearLocation = 'RA'
+        elif 'ankle' in f or 'shank' in f:
+            m.wearLocation = 'RL'
     
     print(f)
     for i in range(data.shape[0]):
