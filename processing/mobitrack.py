@@ -13,9 +13,10 @@ class Mobitrack:
         self.numSamplesSeen = 0
         
         # storage variables
-        self.rawDataStorageWindowSize = 60 * 60 * 100 # store 60 minutes of data @ 100 Hz
-        self.dataStorageWindowSize = 60 * 60 * 100 # store 60 minutes of data @ 100 Hz
-        self.eventStorageWindowSize = 60 * 60 * 100
+        self.frequency = 100 # Hz
+        self.rawDataStorageWindowSize = 60 * 60 * self.frequency # store 60 minutes of data
+        self.dataStorageWindowSize = 60 * 60 * self.frequency # store 60 minutes of data
+        self.eventStorageWindowSize = 60 * 60 * self.frequency
         
         # calibration
         self.calibrationG = 9.81
@@ -23,7 +24,7 @@ class Mobitrack:
         self.calibrationGsens = 1
         
         # preprocessing
-        self.smoothWindowSize = 50 # window size for moving average filter
+        self.smoothWindowSize = self.frequency * 0.5 # window size for moving average filter (seconds)
         self.complementaryFilterAlpha = 0.1
         
         # peak detection
@@ -34,14 +35,18 @@ class Mobitrack:
         self.reps = np.empty(0,dtype=int)
         
         # segmentation
-        self.segmentWindow = 100
-        self.segmentMinPkDist = 50
+        self.segmentWindow = self.frequency * 1 # seconds
+        self.segmentMinPkDist = self.frequency * 0.5
         self.segmentPkThr = 0.5
-        self.segmentMaxPk2PkDist = 20000
+        self.segmentMaxPk2PkDist = self.frequency * 200 # seconds
         self.wearLocation = 'RA' # RA, LA, RL, LL
         
         # rep detection
         self.minROM = 40
+        
+        # exercise detection
+        self.repsPerMin = 5
+        self.minExerciseDuration = 60 # seconds
         
     def processStep(self, data):
         # validate data
@@ -51,17 +56,17 @@ class Mobitrack:
         
         # calibrate data
         if self.numSamplesSeen >= self.rawDataStorageWindowSize:
-            self.rawData = self.rawData[1:]
+            self.rawData = np.copy(self.rawData[1:])
         self.rawData = np.vstack((self.rawData, self.calibrateData(data)))
         
         # smooth data
         if self.numSamplesSeen >= self.rawDataStorageWindowSize:
-            self.smoothData = self.smoothData[1:]
+            self.smoothData = np.copy(self.smoothData[1:])
         self.smoothData = np.vstack((self.smoothData, self.preprocessData()))
         
         # compute angles
         if self.numSamplesSeen >= self.dataStorageWindowSize:
-            self.data = self.data[1:]
+            self.data = np.copy(self.data[1:])
         self.data = np.vstack((self.data, self.computeRotationAngles()))
         
         # peak detection
@@ -113,7 +118,7 @@ class Mobitrack:
             startSumIdx = -self.smoothWindowSize
         
         for i in range(1,7):
-            smoothData[i] = np.mean(self.rawData[startSumIdx:,i])
+            smoothData[i] = np.mean(self.rawData[int(startSumIdx):,i])
         return smoothData
     
     def computeRotationAngles(self):
@@ -200,6 +205,40 @@ class Mobitrack:
                     if min(ROM_f, ROM_b) >= self.minROM:
                         return self.peaks[-1]
         return -1
+    
+    def getWearingSessionStats(self):
+        # get number of exercise periods per wearing session
+        # for each exercise period, find number of repetitions, duration, timestamp (TODO)
+        wearSessStats = []
+        
+        # loop through all reps
+        numExPeriods = 0
+        numRepsInCurrentExPeriod = 0
+        firstExPeriodIndex = -1
+        
+        for i in range(len(self.reps)):
+            if i == 0:
+                numRepsInCurrentExPeriod += 1
+                firstExPeriodIndex = self.reps[0]
+            else:
+                diff_sec = (self.reps[i] - self.reps[i-1]) / self.frequency
+                if diff_sec < self.minExerciseDuration / self.repsPerMin and i != (len(self.reps)-1):
+                    numRepsInCurrentExPeriod += 1
+                else:
+                    print("i:", i)
+                    print("dur:", (self.reps[i-1] - firstExPeriodIndex) / self.frequency)
+                    # new exercise period detected
+                    wearSessStats.append({
+                        "numReps": numRepsInCurrentExPeriod,
+                        "duration": (self.reps[i-1] - firstExPeriodIndex) / self.frequency
+                    })
+                    
+                    # initialize new exercise period
+                    numExPeriods += 1
+                    numRepsInCurrentExPeriod = 0
+                    firstExPeriodIndex = self.reps[i]
+                    
+        return wearSessStats
     
     def plotData(self):
         plt.figure(figsize=(20,10))
@@ -300,5 +339,6 @@ for f in files:
     m.plotData()
 #     m.plotRawData()
 #     m.plotSmoothData()
+    print(m.getWearingSessionStats())
     m.clear()
     
