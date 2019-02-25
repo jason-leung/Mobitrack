@@ -17,7 +17,7 @@ For Mobitrack, MySQL is used due to multiple reasons
 	0 Install root pip packages
 		- install mysql connector and virtualenv pip packages
 		- pip install -r requirements_1.txt
-	1 Run 'createDatabase.py' to create the database and the tables
+	1 Run 'createDatabase.py' to create the database and the tables. If the database already exists, it will be dropped first
 		- python createDatabase.py
 	2 Create virtualenv under './mobitrack' folder & activate
 		- virtualenv env
