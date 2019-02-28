@@ -26,8 +26,7 @@ class ExercisePeriodListCreate(generics.ListCreateAPIView):
 class SessionDetailListCreate(generics.ListCreateAPIView):
 	def get_queryset(self):		
 		queryset = ExercisePeriod.objects.all()
-# 		print(query)
-		sessionID = self.request.query_params.get('query')
+		sessionID = self.kwargs['query']
 		print(sessionID)
 		if sessionID:
 			queryset = queryset.filter(sessionID=sessionID)
