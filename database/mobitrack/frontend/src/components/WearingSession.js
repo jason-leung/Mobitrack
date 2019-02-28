@@ -6,8 +6,7 @@ import Table from "./Table";
 import Search from "./Search";
 
 const Session = () => (
-  <Search endpoint="database/exerciseperiod/"
-          render={filtered => <Table data={filtered} />} />
+  <Search render={results => <Table data={results} />} />
 );
 
 const wrapper = document.getElementById("wearingsession");

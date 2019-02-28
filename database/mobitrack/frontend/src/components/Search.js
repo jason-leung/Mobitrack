@@ -2,66 +2,53 @@
 import React, { Component } from "react";
 import PropTypes from "prop-types";
 
-import Table from "./Table";
+const API_URL = 'database/exerciseperiod';
 
 class Search extends Component {  
   static propTypes = {
-	endpoint: PropTypes.string.isRequired,
     render: PropTypes.func.isRequired
   };
-  
+
   constructor(props) {
   	super(props);
   	this.state = {
-  		filtered: [],
-  		loaded: false,
-		placeholder: "Loading..."
+  		error: false,
+  		query: null,
+  		results: [],
   	};
+  	this.searchByID();
   	this.handleChange = this.handleChange.bind(this);
   }
   
-  componentDidMount() {
-    fetch(this.props.endpoint)
-      .then(response => {
-        if (response.status !== 200) {
-          return this.setState({ placeholder: "Something went wrong" });
-        }
-        return response.json();
-      })
-      .then(filtered => this.setState({ filtered: filtered, loaded: true }));
+  searchByID = () => {
+	fetch(API_URL+ "/" + this.state.query)
+	  .then(response => {
+	  	return response.json();
+	  })
+	    .then(results => this.setState({
+	  	  results: results
+	    }))
   }
   
   handleChange(e) {
-  	console.log(e.target.value);
-	// Variable to hold the original version of the list
-    let currentList = [];
-	// Variable to hold the filtered list before putting into state
-    let newList = [];
-	
-	// If the search bar isn't empty
-    if (e.target.value !== "") {
-      // Assign the original list to currentList
-      currentList = this.props.filtered;
-            
-      // Determine which items should be displayed based on the search terms
-      newList = currentList.filter(item => {
-        const lc = item.toLowerCase();
-        const filter = e.target.value.toLowerCase();
-		// Check to see if the current list item includes the search term
-        return lc.includes(filter);
-      });
-    } else {
-      // If the search bar is empty, set newList to original task list
-      newList = this.props.filtered;
-    }
-    // Set the filtered state based on what our rules added to newList
-    this.setState({filtered: newList});
+	this.setState({
+	  query: e.target.value
+	}, () => {
+		console.log("The query string is");
+		console.log(this.state.query);
+		this.searchByID();
+	})
   }
-  
+
   render() {
-    const { filtered, loaded, placeholder } = this.state;
-    return loaded ? this.props.render(filtered) : <p>{placeholder}</p>;
-  }
+    const { query, results } = this.state;
+    return ([
+		<form className="form-inline active-purple-4">
+		  <input className="form-control form-control-sm mr-3 w-75" placeholder="Search by SessionID" ref={input => this.search = input} onChange={this.handleChange}/>
+		</form>,
+		this.props.render(this.state.results)
+	])
+  } 
 }
 
 export default Search;

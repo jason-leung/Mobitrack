@@ -8,7 +8,7 @@
     "build": "webpack --mode production ./mobitrack/frontend/src/index.js --output ./mobitrack/frontend/static/frontend/main.js"
   },
   "keywords": [],
-  "author": "",
+  "author": "Ji Min Kim, Andrea Sabo, Jason Leung",
   "license": "ISC",
   "devDependencies": {
     "@babel/core": "^7.2.2",
@@ -26,7 +26,6 @@
   },
   "dependencies": {
     "@trendmicro/react-sidenav": "^0.4.5",
-    "axios": "^0.18.0",
     "jquery": "^3.3.1",
     "popper.js": "^1.14.7",
     "react-native-elements": "^1.0.0"

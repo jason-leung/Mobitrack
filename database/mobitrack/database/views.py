@@ -26,10 +26,11 @@ class ExercisePeriodListCreate(generics.ListCreateAPIView):
 class SessionDetailListCreate(generics.ListCreateAPIView):
 	def get_queryset(self):		
 		queryset = ExercisePeriod.objects.all()
-		sessionID = self.request.query_params.get('sessionID')
+# 		print(query)
+		sessionID = self.request.query_params.get('query')
+		print(sessionID)
 		if sessionID:
 			queryset = queryset.filter(sessionID=sessionID)
 		
 		return queryset
-		
 	serializer_class = ExercisePeriodSerializer
