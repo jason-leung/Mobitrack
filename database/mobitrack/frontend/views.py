@@ -8,9 +8,6 @@ def index(request):
 def wearingsession(request):
     return render(request, 'frontend/wearingsession.html')
     
-def sessiondetail(request, sessionID):
-	param = {}
-	sessionID = request.GET.get('sessionID')
-	param['sessionID'] = sessionID
-	template = loader.get_template('frontend/sessiondetails.html')
-	return HttpResponse(template.render(param, request))
+def sessiondetail(request):
+    return render(request, 'frontend/sessiondetail.html')
+

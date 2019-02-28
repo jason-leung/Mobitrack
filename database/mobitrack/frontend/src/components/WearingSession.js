@@ -6,12 +6,10 @@ import Table from "./Table";
 import Search from "./Search";
 
 const Session = () => (
-  <DataProvider endpoint="database/wearingsession/" 
-                render={data => <Table data={data} />} />
+  <Search endpoint="database/exerciseperiod/"
+          render={filtered => <Table data={filtered} />} />
 );
 
 const wrapper = document.getElementById("wearingsession");
-
-const searchbar = document.getElementById("searchbar");
 
 wrapper ? ReactDOM.render(<Session />, wrapper) : null;

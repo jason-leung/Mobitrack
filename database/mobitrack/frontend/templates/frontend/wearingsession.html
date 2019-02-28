@@ -42,7 +42,7 @@
 				<h1>All Wearing Sessions</h1>
 				<!-- Search form -->
 				<form class="form-inline active-purple-4">
-				  <input class="form-control form-control-sm mr-3 w-75" type="text" placeholder="Search" aria-label="Search">
+				  <input class="form-control form-control-sm mr-3 w-75" type="text" placeholder="Search by SessionID" aria-label="Search" ref="querytext" id="search" className="input" onChange={this.handleChange} />
 				  <button class="btn btn-outline-success btn-rounded btn-sm my-0" type="submit">Search</button>
 				</form>
 				{% block content %}
