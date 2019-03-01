@@ -8,4 +8,5 @@ urlpatterns = [
     path('wearingsession', views.wearingsession, name='wearingsession' ),
     url(r'^wearingsession(?P<sessionID>[\w.@+-]+)/$', views.wearingsession, name='wearingsession' ),
     path('pairmobitrack', views.pairmobitrack, name='pairmobitrack' ),
+    path('pairmobitrack/submit/', views.formSubmit, name='formSubmit' ),
 ]
