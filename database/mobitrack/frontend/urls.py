@@ -7,5 +7,4 @@ urlpatterns = [
     path('', views.index, name='index' ),
     path('wearingsession', views.wearingsession, name='wearingsession' ),
     url(r'^wearingsession(?P<sessionID>[\w.@+-]+)/$', views.wearingsession, name='wearingsession' ),
-    path('sessiondetail', views.sessiondetail, name='sessiondetail' ),
 ]

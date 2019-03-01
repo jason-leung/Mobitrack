@@ -39,12 +39,16 @@ class Search extends Component {
 		this.searchByID();
 	})
   }
+  
+  handleSubmit(e) {
+  	e.preventDefault();
+  }
 
   render() {
     const { query, results } = this.state;
     return ([
-		<form className="form-inline active-purple-4">
-		  <input className="form-control form-control-sm mr-3 w-75" placeholder="Search by SessionID" ref={input => this.search = input} onChange={this.handleChange}/>
+		<form className="form-inline active-purple-4" onKeyPress={this.handleEnter} onSubmit={this.handleSubmit}>
+		  <input className="form-control form-control-sm mr-3 w-75" placeholder="Search by PatientID" ref={input => this.search = input} onChange={this.handleChange} onSubmit={this.handleSubmit}/>
 		</form>,
 		this.props.render(this.state.results)
 	])

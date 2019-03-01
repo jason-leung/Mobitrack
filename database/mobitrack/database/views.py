@@ -25,11 +25,11 @@ class ExercisePeriodListCreate(generics.ListCreateAPIView):
 # Handling GET and POST request for all wearingsession
 class SessionDetailListCreate(generics.ListCreateAPIView):
 	def get_queryset(self):		
-		queryset = ExercisePeriod.objects.all()
-		sessionID = self.kwargs['query']
-		print(sessionID)
-		if sessionID:
-			queryset = queryset.filter(sessionID=sessionID)
-		
+		patientID = self.kwargs['query']
+		if (patientID != "null"):
+			queryset = ExercisePeriod.objects.all()
+			queryset = queryset.filter(patientID__icontains=patientID)
+		else:
+			queryset = ExercisePeriod.objects.all()	
 		return queryset
 	serializer_class = ExercisePeriodSerializer

@@ -16,6 +16,7 @@ class ExercisePeriod(models.Model):
 		return self.periodID
 		
 	periodID = models.CharField(max_length=8, primary_key=True)
+	patientID = models.CharField(max_length=8)
 	sessionID = models.ForeignKey(WearingSession, on_delete=models.PROTECT)
 	duration = models.IntegerField()
 	repetitions = models.IntegerField()
