@@ -9,8 +9,8 @@ from sys import argv
 import os
 
 
-seconds_to_stream = 60
-filename = "rest_01.txt"
+seconds_to_stream = 30
+filename = "Mar1.txt"
 data_folder_name = "../../data/MetaMotion"
 
 

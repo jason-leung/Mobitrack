@@ -4,7 +4,8 @@ import ReactDOM from "react-dom";
 import WearingSessionForm from "./WearingSessionForm";
 
 const Form = () => (
-  <WearingSessionForm/>
+  <WearingSessionForm endpoint = "pairmobitrack/submit/"
+  />
 );
 
 const wrapper = document.getElementById("pairmobitrack");
