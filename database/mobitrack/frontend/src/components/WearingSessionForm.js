@@ -21,6 +21,7 @@ class WearingSessionForm extends React.Component {
     this.handleSubmit = this.handleSubmit.bind(this);
 
     this.endpoint = this.props.endpoint;
+    console.log(this.endpoint)
   }
 
   // handleSubmit(event) {
@@ -33,7 +34,7 @@ class WearingSessionForm extends React.Component {
     // var headers = new Headers();
     // headers.append('X-CSRFToken', csrftoken);
     // headers.append('Content-Type', 'application/json');
-    e.preventDefault();
+    //e.preventDefault();
     const { wearLocation, patientID } = this.state;
     const lead = { wearLocation, patientID };
     const conf = {
