@@ -9,7 +9,7 @@ from sys import argv
 import os
 
 
-seconds_to_stream = 10
+seconds_to_stream = 5
 filename = "rest_01.txt"
 data_folder_name = "../../data/MetaMotion"
 
@@ -61,11 +61,11 @@ class State:
 
 
 # Connect to all devices provided as command line args
-for i in range(len(argv) - 1):
-    d = MetaWear(argv[i + 1])
-    d.connect()
-    print("Connected to " + d.address)
-    states.append(State(d))
+# for i in range(len(argv) - 1):
+d = MetaWear("F7:83:98:15:21:07")
+d.connect()
+print("Connected to " + d.address)
+states.append(State(d))
 
 for s in states:
     print("Configuring %s" % (s.device.address))
