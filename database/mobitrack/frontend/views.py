@@ -5,7 +5,7 @@ from django.template import RequestContext
 from django.views.decorators.csrf import csrf_exempt
 from django.shortcuts import redirect
 
-# from mobitrack.tasks import addAndrea
+from frontend.tasks import *
 
 from rest_framework import generics
 
@@ -28,7 +28,7 @@ def formSubmit(request):
         data = json.loads(request.body)
         print(data)
 
-        # addAndrea.delay(2, 34)
+        addAndrea.delay(2, 34)
 
 
 
