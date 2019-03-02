@@ -19,7 +19,7 @@ import matplotlib.pyplot as plt
 from datetime import datetime
 
 filename = "test_01.txt"
-data_folder_name = "../../data/MetaMotion"
+data_folder_name = "../../data/"+datetime.today().strftime('%Y-%m-%d')
 
 # classes
 class Mobitrack:
@@ -144,7 +144,7 @@ class Mobitrack:
             if duration > 0: repsPerMin = self.currentExercisePeriodNumReps / (duration / 60.0)
             if duration >= self.minExerciseDuration and self.currentExercisePeriodNumReps >= self.minRepsPerMin and repsPerMin > self.minRepsPerMin:
                 exercisePeriodStats = {
-                    # "timestamp": datetime.utcfromtimestamp(self.data[self.currentExercisePeriodStartIdx, 0]).strftime('%Y-%m-%d %H:%M:%S'),
+                    "timestamp": datetime.utcfromtimestamp(self.data[self.currentExercisePeriodStartIdx, 0]).strftime('%Y-%m-%d %H:%M:%S'),
                     "numReps": self.currentExercisePeriodNumReps,
                     "duration": duration
                 }
@@ -454,7 +454,6 @@ e = threading.Event()
 
 t1 = threading.Thread(name='Mobitrack', target=mobitrack_connect, args=(e,))
 t2 = threading.Thread(name='Controller', target=mobitrack_controller, args=(e,))
-
 
 t1.start()
 t2.start()
