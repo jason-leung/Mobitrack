@@ -3,10 +3,10 @@ import React from "react";
 import ReactDOM from "react-dom";
 import DataProvider from "./DataProvider";
 import Table from "./Table";
+import Search from "./Search";
 
 const Session = () => (
-  <DataProvider endpoint="database/wearingsession/" 
-                render={data => <Table data={data} />} />
+  <Search render={results => <Table data={results} />} />
 );
 
 const wrapper = document.getElementById("wearingsession");
