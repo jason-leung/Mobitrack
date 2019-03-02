@@ -16,6 +16,7 @@ processing/results/
 database/mobitrack/env/
 database/mobitrack/migrations/
 database/mobitrack/frontend/static/frontend/main.js
+database/env
 __pycache__/
 database/.DS_Store
 .idea
