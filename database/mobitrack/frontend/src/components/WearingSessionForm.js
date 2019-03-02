@@ -1,9 +1,6 @@
 import React, {Component} from 'react';  
 import PropTypes from "prop-types";
 
-import CSRFToken from './csrftoken';
-
-
 class WearingSessionForm extends React.Component {
   static propTypes = {
     endpoint: PropTypes.string.isRequired
@@ -12,7 +9,7 @@ class WearingSessionForm extends React.Component {
   constructor(props) {
     super(props);
     this.state = {
-      wearLocation: '',
+      wearLocation: 'left-upper-arm',
       patientID: ''
     };
 
@@ -21,19 +18,10 @@ class WearingSessionForm extends React.Component {
     this.handleSubmit = this.handleSubmit.bind(this);
 
     this.endpoint = this.props.endpoint;
-    console.log(this.endpoint)
   }
 
-  // handleSubmit(event) {
-  //   alert('Mobitrack started: ' + this.state.wearLocation + '    '  + this.state.patientID + '         ' + this.endpoint);
-  //   event.preventDefault();
-  // }
 
   handleSubmit(event) {
-    // var csrftoken = getCookie('csrftoken');
-    // var headers = new Headers();
-    // headers.append('X-CSRFToken', csrftoken);
-    // headers.append('Content-Type', 'application/json');
     //e.preventDefault();
     const { wearLocation, patientID } = this.state;
     const lead = { wearLocation, patientID };
@@ -44,37 +32,8 @@ class WearingSessionForm extends React.Component {
       body: JSON.stringify(lead),
       headers: new Headers({ "Content-Type": "application/json" })
     };
-    fetch(this.props.endpoint, conf).then(response => console.log("andrea - res" + response)).catch(error => console.log("error====", error));
+    fetch(this.props.endpoint, conf).then(response => console.log("res" + response)).catch(error => console.log("error====", error));
   };
-
-//   handleSubmit(event) {
-//     event.preventDefault();
-
-//     let data = {
-//         wearLocation: this.state.wearLocation,
-//         patientID: this.state.patientID,
-//     };
-
-//     if (this.state.wearLocation !== '' && this.state.patientID !== '' ) {
-//         console.log('wearLocation', this.state.wearLocation, 'patientID ', this.state.patientID);
-
-//         fetch("example.com/:id", {
-//             method: 'POST',
-//             headers: {
-//                 'Accept': 'application/json',
-//                 'Content-Type': 'application/json',
-//             },
-//             mode: "cors",
-//             body: JSON.stringify(data)
-//         })
-//             .then(response => response.json())
-//             .then(data => console.log(data))
-//             .catch(error => console.log(error));
-
-//     } else {
-//         alert('no')
-//     }
-// }
 
   handleLocationChange(event) {
     this.setState({wearLocation: event.target.value});
@@ -83,7 +42,6 @@ class WearingSessionForm extends React.Component {
   handlePatientIDChange(event) {
     this.setState({patientID: event.target.value});
   }
-
 
   render() {
     return (

@@ -28,10 +28,7 @@ def formSubmit(request):
         data = json.loads(request.body)
         print(data)
 
-        addAndrea.delay(2, 34)
-
-
-
+        startTracking.delay(data['wearLocation'], data['patientID'])
 
     return render(request, 'frontend/pairmobitrack.html')
     #return HttpResponseRedirect('/')
