@@ -7,22 +7,19 @@ const API_URL = 'pairmobitrack'
 function updateProgress(task_id, component_ref) {
   console.log('In update progress function: ' + task_id);
   var progressUrl = API_URL+ "/" + task_id;
-  console.log(progressUrl + "progressURL");
 
   fetch(progressUrl).then(function(response) {
     response.json().then(function(data) {
       console.log(data);
       if (data.state == "ANDREA") {
-        console.log('andrea')
         setTimeout(updateProgress, 500, task_id, component_ref);
       }
       else if (data.state == "PENDING") {
-        console.log('pending')
         setTimeout(updateProgress, 500, task_id, component_ref);
       }
       else {
         console.log(component_ref)
-        return component_ref.finishedAnswer();
+        return component_ref.finishedAnswer(data);
       }
     });
   });
@@ -46,7 +43,6 @@ class WearingSessionForm extends React.Component {
     this.handleLocationChange = this.handleLocationChange.bind(this);
     this.handlePatientIDChange = this.handlePatientIDChange.bind(this);
     this.handleSubmit = this.handleSubmit.bind(this);
-    // this.updateProgress = this.updateProgress.bind(this);
 
     this.endpoint = this.props.endpoint;
   }
@@ -62,73 +58,10 @@ class WearingSessionForm extends React.Component {
 
   }
 
-  finishedAnswer() {
+  finishedAnswer(result) {
     console.log('DID THIS REALLY JUST WORK???');
+    console.log(result)
   }
-
-  // updateProgress(task_id) {
-  //     console.log('In update progress function: ' + task_id);
-  //     var progressUrl = API_URL+ "/" + task_id;
-  //     console.log(progressUrl + "progressURL");
-    
-  //     fetch(progressUrl).then(function(response) {
-  //       response.json().then(function(data) {
-  //         console.log(data);
-  //         if (data.state == "ANDREA") {
-  //           console.log('andrea')
-
-  //           setTimeout(
-  //             function() {
-  //                 this.updateProgress(task_id);
-  //             }
-  //             .bind(this),
-  //             500
-  //         );
-
-  //         }
-  //         else if (data.state == "PENDING") {
-  //           console.log('pending')
-  //           setTimeout(
-  //             function() {
-  //                 this.updateProgress(task_id);
-  //             }
-  //             .bind(this),
-  //             500
-  //         );          }
-  //         else {
-  //           return 227;
-  //         }
-  //       });
-  //     });
-  //   }
-
-  //  updateProgress(task_id) {
-  //   console.log('In update progress function: ' + task_id);
-  //   var progressUrl = API_URL+ "/" + task_id;
-  //   console.log(progressUrl + "progressURL");
-  
-  //   fetch(progressUrl).then(function(response) {
-  //     response.json().then(function(data) {
-  //       console.log(data);
-  //       if (data.state == "ANDREA") {
-  //         console.log('andrea')
-
-  //         setTimeout(this.updateProgress.bind(this, task_id, 500));
-  //       }
-  //       else if (data.state == "PENDING") {
-  //         console.log('pending')
-  //         setTimeout(this.updateProgress.bind(this, task_id, 500));
-
-  //       }
-  //       else {
-  //         return 227;
-  //       }
-  //     });
-  //   });
-  // }
-
-
-
 
   handleSubmit(event) {
     event.preventDefault();
@@ -145,35 +78,10 @@ class WearingSessionForm extends React.Component {
     };
     console.log("submitted form");
 
-    // fetch(this.props.endpoint, conf)
-    //   .then(response => this.setTaskID(
-    //         response.json()))
-    //   .catch(err => console.log(err));
-
     fetch(this.props.endpoint, conf)
       .then(response => response.json())
       .then(response => this.setTaskID(response))
       .catch(err => console.log(err));
-
-      
-
-
-    // fetch(this.props.endpoint, conf).then(function(response){
-    //   response.json().then(function(data)
-    //   {
-    //     this.setTaskID(data);
-
-
-
-    //     console.log("got response");  
-
-    //   });
-      
-
-
-    // });
-
-
   };
 
   handleLocationChange(event) {
