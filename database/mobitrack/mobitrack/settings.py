@@ -78,6 +78,7 @@ TEMPLATES = [
 WSGI_APPLICATION = 'mobitrack.wsgi.application'
 
 CELERY_BROKER_URL = 'amqp://localhost'
+CELERY_RESULT_BACKEND = 'amqp'
 
 # Database
 # https://docs.djangoproject.com/en/2.1/ref/settings/#databases

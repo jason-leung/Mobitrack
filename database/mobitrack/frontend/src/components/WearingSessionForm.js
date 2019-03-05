@@ -1,6 +1,33 @@
 import React, {Component} from 'react';  
 import PropTypes from "prop-types";
 
+const API_URL = 'pairmobitrack'
+
+
+function updateProgress(task_id, component_ref) {
+  console.log('In update progress function: ' + task_id);
+  var progressUrl = API_URL+ "/" + task_id;
+  console.log(progressUrl + "progressURL");
+
+  fetch(progressUrl).then(function(response) {
+    response.json().then(function(data) {
+      console.log(data);
+      if (data.state == "ANDREA") {
+        console.log('andrea')
+        setTimeout(updateProgress, 500, task_id, component_ref);
+      }
+      else if (data.state == "PENDING") {
+        console.log('pending')
+        setTimeout(updateProgress, 500, task_id, component_ref);
+      }
+      else {
+        console.log(component_ref)
+        return component_ref.finishedAnswer();
+      }
+    });
+  });
+}
+
 class WearingSessionForm extends React.Component {
   static propTypes = {
     endpoint: PropTypes.string.isRequired
@@ -9,20 +36,104 @@ class WearingSessionForm extends React.Component {
   constructor(props) {
     super(props);
     this.state = {
+      submitted: false,
+      task_id: null,
       wearLocation: 'left-upper-arm',
       patientID: ''
     };
 
+
     this.handleLocationChange = this.handleLocationChange.bind(this);
     this.handlePatientIDChange = this.handlePatientIDChange.bind(this);
     this.handleSubmit = this.handleSubmit.bind(this);
+    // this.updateProgress = this.updateProgress.bind(this);
 
     this.endpoint = this.props.endpoint;
   }
 
 
+  setTaskID(id) {
+    console.log("got response - setTaskID");  
+    this.state.task_id = id['id'];
+    console.log(this.state.task_id);
+    updateProgress(this.state.task_id, this);
+  
+
+
+  }
+
+  finishedAnswer() {
+    console.log('DID THIS REALLY JUST WORK???');
+  }
+
+  // updateProgress(task_id) {
+  //     console.log('In update progress function: ' + task_id);
+  //     var progressUrl = API_URL+ "/" + task_id;
+  //     console.log(progressUrl + "progressURL");
+    
+  //     fetch(progressUrl).then(function(response) {
+  //       response.json().then(function(data) {
+  //         console.log(data);
+  //         if (data.state == "ANDREA") {
+  //           console.log('andrea')
+
+  //           setTimeout(
+  //             function() {
+  //                 this.updateProgress(task_id);
+  //             }
+  //             .bind(this),
+  //             500
+  //         );
+
+  //         }
+  //         else if (data.state == "PENDING") {
+  //           console.log('pending')
+  //           setTimeout(
+  //             function() {
+  //                 this.updateProgress(task_id);
+  //             }
+  //             .bind(this),
+  //             500
+  //         );          }
+  //         else {
+  //           return 227;
+  //         }
+  //       });
+  //     });
+  //   }
+
+  //  updateProgress(task_id) {
+  //   console.log('In update progress function: ' + task_id);
+  //   var progressUrl = API_URL+ "/" + task_id;
+  //   console.log(progressUrl + "progressURL");
+  
+  //   fetch(progressUrl).then(function(response) {
+  //     response.json().then(function(data) {
+  //       console.log(data);
+  //       if (data.state == "ANDREA") {
+  //         console.log('andrea')
+
+  //         setTimeout(this.updateProgress.bind(this, task_id, 500));
+  //       }
+  //       else if (data.state == "PENDING") {
+  //         console.log('pending')
+  //         setTimeout(this.updateProgress.bind(this, task_id, 500));
+
+  //       }
+  //       else {
+  //         return 227;
+  //       }
+  //     });
+  //   });
+  // }
+
+
+
+
   handleSubmit(event) {
-    //e.preventDefault();
+    event.preventDefault();
+    console.log(this.state.submitted + " Sumbitted");
+
     const { wearLocation, patientID } = this.state;
     const lead = { wearLocation, patientID };
     const conf = {
@@ -32,7 +143,37 @@ class WearingSessionForm extends React.Component {
       body: JSON.stringify(lead),
       headers: new Headers({ "Content-Type": "application/json" })
     };
-    fetch(this.props.endpoint, conf).then(response => console.log("res" + response)).catch(error => console.log("error====", error));
+    console.log("submitted form");
+
+    // fetch(this.props.endpoint, conf)
+    //   .then(response => this.setTaskID(
+    //         response.json()))
+    //   .catch(err => console.log(err));
+
+    fetch(this.props.endpoint, conf)
+      .then(response => response.json())
+      .then(response => this.setTaskID(response))
+      .catch(err => console.log(err));
+
+      
+
+
+    // fetch(this.props.endpoint, conf).then(function(response){
+    //   response.json().then(function(data)
+    //   {
+    //     this.setTaskID(data);
+
+
+
+    //     console.log("got response");  
+
+    //   });
+      
+
+
+    // });
+
+
   };
 
   handleLocationChange(event) {
