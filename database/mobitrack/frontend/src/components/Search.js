@@ -1,6 +1,7 @@
-// The Wearing Session component of the React frontend
+// The Wearing Session Search component of the React frontend
 import React, { Component } from "react";
 import PropTypes from "prop-types";
+import { CSVLink } from "react-csv";
 
 const API_URL = 'database/exerciseperiod';
 
@@ -49,6 +50,7 @@ class Search extends Component {
     return ([
 		<form className="form-inline active-purple-4" onKeyPress={this.handleEnter} onSubmit={this.handleSubmit}>
 		  <input className="form-control form-control-sm mr-3 w-75" placeholder="Search by PatientID" ref={input => this.search = input} onChange={this.handleChange} onSubmit={this.handleSubmit}/>
+		  <CSVLink data={this.state.results} filename={this.state.query} className="btn btn-outline-info">Export CSV</CSVLink>
 		</form>,
 		this.props.render(this.state.results)
 	])
