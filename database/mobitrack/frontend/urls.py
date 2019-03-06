@@ -9,5 +9,6 @@ urlpatterns = [
     url(r'^wearingsession(?P<sessionID>[\w.@+-]+)/$', views.wearingsession, name='wearingsession' ),
     path('pairmobitrack', views.pairmobitrack, name='pairmobitrack' ),
     path('pairmobitrack/submit/', views.formSubmit, name='formSubmit' ),
-    url(r'^pairmobitrack/(?P<task_id>[\w.@+-]+)/$', views.get_progress, name='task_status')
+    path('pairmobitrack/stopMonitoring/', views.stopMonitoring, name='stopmonitor'),
+    url(r'^pairmobitrack/(?P<task_id>[\w.@+-]+)/$', views.get_progress, name='task_status'),
 ]

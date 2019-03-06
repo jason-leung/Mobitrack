@@ -7,6 +7,10 @@ from time import sleep
 
 logger = get_task_logger(__name__)
 
+@task(bind=True)
+def stopTracking(self, mac_address):
+    sleep(7)
+    return True
 
 @task(bind=True)
 def startTracking(self, location, patientID):

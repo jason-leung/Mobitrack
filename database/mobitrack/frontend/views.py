@@ -9,11 +9,12 @@ from django.shortcuts import redirect
 from celery.result import AsyncResult
 from frontend.tasks import *
 from time import sleep
-# from frontend.Progress import Progress
 
 from rest_framework import generics
 
 import json
+
+MAC_ADDRESS = 'F7:83:98:15:21:07'
 
 def get_progress(request, task_id):
     result = AsyncResult(task_id)
@@ -33,6 +34,15 @@ def wearingsession(request):
 def pairmobitrack(request):
     return render(request, 'frontend/pairmobitrack.html')
 
+@csrf_exempt
+def stopMonitoring(request):
+    print(request)
+    if (request.method == 'POST'):
+        x = stopTracking.delay(MAC_ADDRESS)
+        print("celery_task_ID: " + x.task_id)
+
+    return HttpResponse(json.dumps({'id':x.task_id}), content_type='application/json')
+
 @csrf_exempt 
 def formSubmit(request):
     print(request)
@@ -48,11 +58,3 @@ def formSubmit(request):
 
 
     return HttpResponse(json.dumps({'id':x.task_id}), content_type='application/json')
-
-# def progress_view(request):
-#     result = my_task.delay(10)
-#     return render(request, 'display_progress.html', context={'task_id': result.task_id})
-
-# def get_progress(request, task_id):
-#     progress = Progress(task_id)
-#     return HttpResponse(json.dumps(progress.get_info()), content_type='application/json')
