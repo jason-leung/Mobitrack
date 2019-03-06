@@ -41,7 +41,8 @@ For Mobitrack, MySQL is used due to multiple reasons
 		- ex: http://127.0.0.1:8000/database/e8495e1e36ba48b7/
 	9 Entering http://127.0.0.1:8000/ will hit the homepage
 	10 Entering http://127.0.0.1:8000/wearingsession will hit the wearing session page
-	11 (TODO) Implementing search function 
+	11 Search function is implemented under "All wearing session page"
+		- The behaviour is that whenever there is a change made inside a search bar, the query will be made to populate the corresponding database. If the query text is null, all exercise periods will be populated instead.	
 	12 (TODO) Export into csv format
 			
 

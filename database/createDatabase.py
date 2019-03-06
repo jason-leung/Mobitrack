@@ -8,14 +8,6 @@ db = mysql.connector.connect (
 		passwd="password" #yourpw
 	)
 
-
-try:
-	sql_Delete_query = """DROP DATABASE mobitrack"""
-	mycursor.execute(sql_Delete_query)
-	print ("mobitrack databse Deleted successfully ")
-except:
-	print ("mobitrack database did not originally exist ")
-
 mycursor = db.cursor()
 
 try:
