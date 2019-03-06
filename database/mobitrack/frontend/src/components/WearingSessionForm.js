@@ -11,18 +11,14 @@ function updateProgress(task_id, component_ref) {
   fetch(progressUrl).then(function(response) {
     response.json().then(function(data) {
       console.log(data);
-      if (data.state == "CONNECTED") {
-        component_ref.setConnectionStatus(data.state);
-        setTimeout(updateProgress, 500, task_id, component_ref);
-      }
-      else if (data.state == "PENDING") {
-        component_ref.setConnectionStatus(data.state);
-        setTimeout(updateProgress, 500, task_id, component_ref);
-      }
-      else {
+      if (data.state == "SUCCESS") {
         console.log(component_ref)
         component_ref.setConnectionStatus(data.state);
         return component_ref.finishedAnswer(data);
+      }
+      else{
+        component_ref.setConnectionStatus(data.state);
+        setTimeout(updateProgress, 500, task_id, component_ref);
       }
     });
   });

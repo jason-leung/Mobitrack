@@ -252,7 +252,13 @@ class Mobitrack:
         plt.ylabel('Angle')
         plt.legend()
         
-        plt.savefig(os.path.join(self.data_folder, datetime.today().strftime('%Y-%m-%d'), self.data[0,0] + ".png"))
+        data_dir = os.path.join(self.data_folder, datetime.today().strftime('%Y-%m-%d'))
+        if not os.path.exists(data_dir):
+            os.mkdir(data_dir)
+            print("Directory " , data_dir ,  " created ")
+        else:
+            print("Directory " , data_dir ,  " already exists")
+        plt.savefig(os.path.join(data_dir, str(self.data[0,0]*1000) + ".png"))
         
         plt.show()
 
@@ -270,7 +276,13 @@ class Mobitrack:
         plt.ylabel('Raw IMU Readings (a in m/s^2, g in rad/s)')
         plt.legend()
         
-        plt.savefig(os.path.join(self.data_folder, datetime.today().strftime('%Y-%m-%d'), self.data[0,0] + "_raw.png"))
+        data_dir = os.path.join(self.data_folder, datetime.today().strftime('%Y-%m-%d'))
+        if not os.path.exists(data_dir):
+            os.mkdir(data_dir)
+            print("Directory " , data_dir ,  " created ")
+        else:
+            print("Directory " , data_dir ,  " already exists")
+        plt.savefig(os.path.join(data_dir, str(self.data[0,0]*1000) + "_raw.png"))
         
         plt.show()
         
@@ -287,23 +299,27 @@ class Mobitrack:
         plt.ylabel('Smoothed IMU Readings (a in m/s^2, g in rad/s)')
         plt.legend()
         
-        plt.savefig(os.path.join(self.data_folder, datetime.today().strftime('%Y-%m-%d'), self.data[0,0] + "_smooth.png"))
+        data_dir = os.path.join(self.data_folder, datetime.today().strftime('%Y-%m-%d'))
+        if not os.path.exists(data_dir):
+            os.mkdir(data_dir)
+            print("Directory " , data_dir ,  " created ")
+        else:
+            print("Directory " , data_dir ,  " already exists")
+        plt.savefig(os.path.join(data_dir, str(self.data[0,0]*1000) + "_smooth.png"))
         
         plt.show()
 
     def writeData(self):
         data_dir = os.path.join(self.data_folder, datetime.today().strftime('%Y-%m-%d'))
         if not os.path.exists(data_dir):
-            os.mkdir(folder)
+            os.mkdir(data_dir)
             print("Directory " , data_dir ,  " created ")
         else:
             print("Directory " , data_dir ,  " already exists")
 
         # Log data to file
-        with open(os.path.join(data_dir, self.data[0,0] + ".txt"), 'w') as f:
-            f.write('timestamp, accel_x, accel_y, accel_z, gyro_x, gyro_y, gyro_z\n')
-            f.write('\n'.join(self.rawData))
-        
+        np.savetxt(os.path.join(data_dir, str(self.data[0,0]*1000) + ".txt"), self.rawData, delimiter=',', header='timestamp, accel_x, accel_y, accel_z, gyro_x, gyro_y, gyro_z')
+
     def clear(self):
         # variable initialization
         self.rawData = np.empty((0,7)) # time, ax, ay, az, gx, gy, gz

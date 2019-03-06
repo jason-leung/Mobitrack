@@ -36,11 +36,8 @@ def pairmobitrack(request):
 
 @csrf_exempt
 def stopMonitoring(request):
-    print(request)
     if (request.method == 'POST'):
         x = stopTracking.delay(MAC_ADDRESS)
-        print("celery_task_ID: " + x.task_id)
-
     return HttpResponse(json.dumps({'id':x.task_id}), content_type='application/json')
 
 @csrf_exempt 
@@ -48,13 +45,5 @@ def formSubmit(request):
     print(request)
     if (request.method == 'POST'):
         data = json.loads(request.body)
-        print(data)
-
-        x = startTracking.delay("F7:83:98:15:21:07", data['wearLocation'], data['patientID'])
-        print("celery_task_ID: " + x.task_id)
-
-        result = AsyncResult(x.task_id)
-        print("Result: " + str(result.state))
-
-
+        x = startTracking.delay(MAC_ADDRESS, data['wearLocation'], data['patientID'])
     return HttpResponse(json.dumps({'id':x.task_id}), content_type='application/json')
