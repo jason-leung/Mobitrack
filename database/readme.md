@@ -44,4 +44,9 @@ For Mobitrack, MySQL is used due to multiple reasons
 	11 (TODO) Implementing search function 
 	12 (TODO) Export into csv format
 			
-	
+
+4. Lauching Celery Service
+	- Install rabbitMQ and start service
+	- Start celery worker service
+		- cd Mobitrack/database/mobitrack
+		- celery -A mobitrack worker -l info

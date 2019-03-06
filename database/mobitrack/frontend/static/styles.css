@@ -15,6 +15,11 @@
     box-shadow: 0 0 0 1px #ce93d8;
 }
 
+.disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
 #sidebar {
     min-width: 250px;
     max-width: 250px;
