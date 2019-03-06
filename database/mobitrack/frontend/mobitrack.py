@@ -1,27 +1,9 @@
-# mbientlabs
-from __future__ import print_function
-from ctypes import c_void_p, cast, POINTER
-from mbientlab.metawear import MetaWear, libmetawear, parse_value, cbindings
-from threading import Event
-from sys import argv
-import os
-
-# threading
-import logging
-import threading
-import time
-logging.basicConfig(level=logging.DEBUG,format='(%(threadName)-10s) %(message)s',)
-
 # mobitrack
 import numpy as np
 import matplotlib.pyplot as plt
-# import pandas as pd
 from datetime import datetime
+import os
 
-filename = "test_01.txt"
-data_folder_name = "../../data/"+datetime.today().strftime('%Y-%m-%d')
-
-# classes
 class Mobitrack:
     # constructor
     def __init__(self):
@@ -270,7 +252,7 @@ class Mobitrack:
         plt.ylabel('Angle')
         plt.legend()
         
-        plt.savefig((data_folder_name+filename).replace('.txt', '.png'))
+        plt.savefig(os.path.join(self.data_folder, datetime.today().strftime('%Y-%m-%d'), self.data[0,0] + ".png"))
         
         plt.show()
 
@@ -288,7 +270,7 @@ class Mobitrack:
         plt.ylabel('Raw IMU Readings (a in m/s^2, g in rad/s)')
         plt.legend()
         
-        plt.savefig((data_folder_name+filename).replace('.txt', '_raw.png'))
+        plt.savefig(os.path.join(self.data_folder, datetime.today().strftime('%Y-%m-%d'), self.data[0,0] + "_raw.png"))
         
         plt.show()
         
@@ -305,9 +287,22 @@ class Mobitrack:
         plt.ylabel('Smoothed IMU Readings (a in m/s^2, g in rad/s)')
         plt.legend()
         
-        plt.savefig((data_folder_name+filename).replace('.txt', '_smooth.png'))
+        plt.savefig(os.path.join(self.data_folder, datetime.today().strftime('%Y-%m-%d'), self.data[0,0] + "_smooth.png"))
         
         plt.show()
+
+    def writeData(self):
+        data_dir = os.path.join(self.data_folder, datetime.today().strftime('%Y-%m-%d'))
+        if not os.path.exists(data_dir):
+            os.mkdir(folder)
+            print("Directory " , data_dir ,  " created ")
+        else:
+            print("Directory " , data_dir ,  " already exists")
+
+        # Log data to file
+        with open(os.path.join(data_dir, self.data[0,0] + ".txt"), 'w') as f:
+            f.write('timestamp, accel_x, accel_y, accel_z, gyro_x, gyro_y, gyro_z\n')
+            f.write('\n'.join(self.rawData))
         
     def clear(self):
         # variable initialization
@@ -322,139 +317,3 @@ class Mobitrack:
         self.valleys = np.empty(0,dtype=int)
         self.segments = np.empty(0,dtype=int)
         self.reps = np.empty(0,dtype=int)
-
-# global variables
-mobitrack_status = False
-states = []
-sensor_data = []
-m = Mobitrack()
-
-class State:
-  def __init__(self, device):
-      self.device = device
-      self.callback = cbindings.FnVoid_VoidP_DataP(self.data_handler)
-      self.processor = None
-
-  def data_handler(self, ctx, data):
-      values = parse_value(data, n_elem=2)
-      time_stamp = data.contents.epoch
-      data_current = [time_stamp, values[0].x, values[0].y, values[0].z, values[1].x, values[1].y, values[1].z]
-      sensor_data.append("%d,%f,%f,%f,%f,%f,%f" % (time_stamp,  values[0].x, values[0].y, values[0].z, values[1].x, values[1].y, values[1].z))
-      m.processStep(np.array([time_stamp / 1000,  values[0].x, values[0].y, values[0].z, values[1].x, values[1].y, values[1].z]))
-
-  def setup(self):
-      libmetawear.mbl_mw_settings_set_connection_parameters(self.device.board, 7.5, 7.5, 0, 6000)
-      time.sleep(1.5)
-
-      e = Event()
-
-      def processor_created(context, pointer):
-          self.processor = pointer
-          e.set()
-
-      fn_wrapper = cbindings.FnVoid_VoidP_VoidP(processor_created)
-
-      acc = libmetawear.mbl_mw_acc_get_acceleration_data_signal(self.device.board)
-      gyro = libmetawear.mbl_mw_gyro_bmi160_get_rotation_data_signal(self.device.board)
-
-      signals = (c_void_p * 1)()
-      signals[0] = gyro
-      libmetawear.mbl_mw_dataprocessor_fuser_create(acc, signals, 1, None, fn_wrapper)
-      e.wait()
-      libmetawear.mbl_mw_datasignal_subscribe(self.processor, None, self.callback)
-
-  def start(self):
-      libmetawear.mbl_mw_gyro_bmi160_enable_rotation_sampling(self.device.board)
-      libmetawear.mbl_mw_acc_enable_acceleration_sampling(self.device.board)
-
-      libmetawear.mbl_mw_gyro_bmi160_start(self.device.board)
-      libmetawear.mbl_mw_acc_start(self.device.board)
-
-
-def mobitrack_connect(e):
-  global mobitrack_status
-  global states
-  global sensor_data
-  last_mobitrack_status = False
-  logging.debug('Connecting to Mobitrack...')
-  
-  while(True):
-    # starting session
-    if(last_mobitrack_status == False and mobitrack_status == True):
-      logging.debug('Starting Mobitrack Session...')
-
-      d = MetaWear("F7:83:98:15:21:07")
-      d.connect()
-      print("Connected to " + d.address)
-      states.append(State(d))
-
-      for s in states:
-          print("Configuring %s" % (s.device.address))
-          s.setup()
-
-      for s in states:
-          s.start()
-
-    # during session
-    # while(mobitrack_status):
-      # logging.debug('processStep()')
-      # last_mobitrack_status = True
-      # time.sleep(0.5)
-
-    # end session
-    if(last_mobitrack_status == True and mobitrack_status == False):
-      logging.debug('endSession()')
-      m.endSession()
-      m.plotData()
-      m.clear()
-      print("Resetting devices")
-      events = []
-      for s in states:
-          e = Event()
-          events.append(e)
-
-          s.device.on_disconnect = lambda s: e.set()
-          libmetawear.mbl_mw_debug_reset(s.device.board)
-
-      for e in events:
-          e.wait()
-
-
-      if not os.path.exists(data_folder_name):
-          os.mkdir(data_folder_name)
-          print("Directory " , data_folder_name ,  " created ")
-      else:
-          print("Directory " , data_folder_name ,  " already exists")
-
-      #print(sensor_data)
-      # Log data to file
-      with open(os.path.join(data_folder_name, 'data_' + filename), 'w') as f:
-          print(filename)
-          f.write('timestamp, accel_x, accel_y, accel_z, gyro_x, gyro_y, gyro_z\n')
-          f.write('\n'.join(sensor_data))
-
-    last_mobitrack_status = mobitrack_status
-    time.sleep(0.5)
-
-
-def mobitrack_controller(e):
-  global mobitrack_status
-  logging.debug('Starting Mobitrack controller...')
-
-  while(True):
-    user_input = input()
-    if(user_input == '0'):
-      mobitrack_status = False
-      # print("Setting Status:", user_input)
-    elif(user_input == '1'):
-      mobitrack_status = True
-      # print("Setting Status:", user_input)
-
-e = threading.Event()
-
-t1 = threading.Thread(name='Mobitrack', target=mobitrack_connect, args=(e,))
-t2 = threading.Thread(name='Controller', target=mobitrack_controller, args=(e,))
-
-t1.start()
-t2.start()
-print("Enter Mobitrack Status (0 = off, 1 = on):")

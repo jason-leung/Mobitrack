@@ -25,7 +25,11 @@ For Mobitrack, MySQL is used due to multiple reasons
 		- (To deactivate) deactivate
 	3 Install all the required packages in virtualenv (i.e. pip)
 		- pip install -r requirements.txt (This should only be run once the virtualenv is activated)
+	3.5 Install npm
+		- sudo apt install npm
+		- npm install
 	4 (Whenever applicable) Launch the development server
+		- npm run build
 		- python manage.py runserver
 	5 Run 'insertMockData.py' to generate data for both tables; each run adds 1 row to wearing session table and 1-5 exercise period table
 		- python insertMockData.py

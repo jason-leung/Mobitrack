@@ -50,7 +50,7 @@ def formSubmit(request):
         data = json.loads(request.body)
         print(data)
 
-        x = startTracking.delay(data['wearLocation'], data['patientID'])
+        x = startTracking.delay("F7:83:98:15:21:07", data['wearLocation'], data['patientID'])
         print("celery_task_ID: " + x.task_id)
 
         result = AsyncResult(x.task_id)

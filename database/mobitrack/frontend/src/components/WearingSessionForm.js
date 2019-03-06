@@ -11,7 +11,7 @@ function updateProgress(task_id, component_ref) {
   fetch(progressUrl).then(function(response) {
     response.json().then(function(data) {
       console.log(data);
-      if (data.state == "ANDREA") {
+      if (data.state == "CONNECTED") {
         component_ref.setConnectionStatus(data.state);
         setTimeout(updateProgress, 500, task_id, component_ref);
       }
