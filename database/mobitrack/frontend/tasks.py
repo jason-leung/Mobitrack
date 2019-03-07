@@ -19,6 +19,8 @@ logger = get_task_logger(__name__)
 def startTracking(self, macAddress, location, patientID):
     m = Mobitrack()
     m.data_folder = "/home/jason/git/Mobitrack/data"
+    m.patientID = patientID
+    m.wearLocation = location
     device = MetaWear(macAddress)
     state = State(device, m)
 
