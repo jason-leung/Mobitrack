@@ -134,7 +134,7 @@ class Mobitrack:
         self.numSamplesSeen += 1
     
     def endPeriod(self):
-        exercisePeriodStats = {}
+        exercisePeriodStats = {"timestamp": datetime.utcfromtimestamp(self.data[self.currentExercisePeriodStartIdx, 0]).strftime('%Y-%m-%d %H:%M:%S')}
         if self.currentExercisePeriodNumReps > 0 and len(self.reps) > 0:
             duration = (self.reps[-1] - self.currentExercisePeriodStartIdx) / self.frequency
             repsPerMin = 0
@@ -149,23 +149,28 @@ class Mobitrack:
                 # write exercise period to database
                 print("Exericse Period Detected:", exercisePeriodStats)
                 
-                print("Writing exercise period to database")
-                db = mysql.connector.connect (
-                    host=self.db['host'],
-                    user=self.db['user'], #yourusername
-                    passwd=self.db['passwd'] #yourpw
-                )
-                mycursor = db.cursor()
-                mycursor.execute("USE mobitrack")
-                sql = "INSERT INTO database_exerciseperiod (PeriodID, PatientID, SessionID_id, Duration, Repetitions, Timestamp) VALUES (%s, %s, %s, %s, %s, %s)"
-                periodID = uuid.uuid4().hex[:8]
-                val = (periodID, self.patientID, self.sessionID, exercisePeriodStats['duration'], exercisePeriodStats['numReps'], exercisePeriodStats['timestamp'])
-                mycursor.execute(sql, val)
-                db.commit()
-                mycursor.close()
-                db.close()
-                print("Exercise period successfully written to database")
-
+                try:
+                    print("Writing exercise period to database")
+                    db = mysql.connector.connect (
+                        host=self.db['host'],
+                        user=self.db['user'], #yourusername
+                        passwd=self.db['passwd'] #yourpw
+                    )
+                    mycursor = db.cursor()
+                    mycursor.execute("USE mobitrack")
+                    sql = "INSERT INTO database_exerciseperiod (PeriodID, PatientID, SessionID_id, Duration, Repetitions, Timestamp) VALUES (%s, %s, %s, %s, %s, %s)"
+                    periodID = uuid.uuid4().hex[:8]
+                    val = (periodID, self.patientID, self.sessionID, int(exercisePeriodStats['duration']), exercisePeriodStats['numReps'], exercisePeriodStats['timestamp'])
+                    mycursor.execute(sql, val)
+                    db.commit()
+                    mycursor.close()
+                    db.close()
+                    print("Exercise period successfully written to database")
+                except (Exception, ArithmeticError) as e:
+                    template = "An exception of type {0} occurred. Arguments:\n{1!r}"
+                    message = template.format(type(e).__name__, e.args)
+                    print(message)
+                    print("Exception occured: Error when writing exercise period to database")
             self.currentExercisePeriodNumReps = 0
         return exercisePeriodStats
 
@@ -173,21 +178,30 @@ class Mobitrack:
         exercisePeriodStats = self.endPeriod()
 
         # write wearing session to database
-        print("Writing wearing session to database")
-        db = mysql.connector.connect (
-            host=self.db['host'],
-            user=self.db['user'], #yourusername
-            passwd=self.db['passwd'] #yourpw
-        )
-        mycursor = db.cursor()
-        mycursor.execute("USE mobitrack")
-        sql = "INSERT INTO database_wearingsession (SessionID, PatientID, Location, TimeStamp) VALUES (%s, %s, %s, %s)"
-        val = (self.sessionID, self.patientID, self.wearLocation, exercisePeriodStats['timestamp'])
-        mycursor.execute(sql, val)
-        mycursor.close()
-        db.close()
-        db.commit()
-        print("Wearing session successfully written to database")
+        try:
+            print("Writing wearing session to database")
+            print("jme2op")
+            print(exercisePeriodStats)
+            print("jme3op")
+            db = mysql.connector.connect (
+                host=self.db['host'],
+                user=self.db['user'], #yourusername
+                passwd=self.db['passwd'] #yourpw
+            )
+            mycursor = db.cursor()
+            mycursor.execute("USE mobitrack")
+            sql = "INSERT INTO database_wearingsession (SessionID, PatientID, Location, TimeStamp) VALUES (%s, %s, %s, %s)"
+            val = (self.sessionID, self.patientID, self.wearLocation, exercisePeriodStats['timestamp'])
+            mycursor.execute(sql, val)
+            db.commit()
+            mycursor.close()
+            db.close()
+            print("Wearing session successfully written to database")
+        except (Exception, ArithmeticError) as e:
+            template = "An exception of type {0} occurred. Arguments:\n{1!r}"
+            message = template.format(type(e).__name__, e.args)
+            print(message)
+            print("Exception occured: Error when writing wearing session to database")
 
         # generate new session ID
         self.sessionID = uuid.uuid4().hex[:16]
@@ -317,7 +331,7 @@ class Mobitrack:
             print("Directory " , data_dir ,  " created ")
         else:
             print("Directory " , data_dir ,  " already exists")
-        plt.savefig(os.path.join(data_dir, str(int(self.data[0,0]*1000)) + ".png"))
+        plt.savefig(os.path.join(data_dir, str(int(self.data[0,0]*1000)) + "_" + self.wearLocation + ".png"))
         
         plt.show()
 
@@ -341,7 +355,7 @@ class Mobitrack:
             print("Directory " , data_dir ,  " created ")
         else:
             print("Directory " , data_dir ,  " already exists")
-        plt.savefig(os.path.join(data_dir, str(self.data[0,0]*1000) + "_raw.png"))
+        plt.savefig(os.path.join(data_dir, str(int(self.data[0,0]*1000)) + "_" + self.wearLocation + "_raw.png"))
         
         plt.show()
         
@@ -364,7 +378,7 @@ class Mobitrack:
             print("Directory " , data_dir ,  " created ")
         else:
             print("Directory " , data_dir ,  " already exists")
-        plt.savefig(os.path.join(data_dir, str(self.data[0,0]*1000) + "_smooth.png"))
+        plt.savefig(os.path.join(data_dir, str(int(self.data[0,0]*1000)) + "_" + self.wearLocation + "_smooth.png"))
         
         plt.show()
 
@@ -377,7 +391,7 @@ class Mobitrack:
             print("Directory " , data_dir ,  " already exists")
 
         # Log data to file
-        np.savetxt(os.path.join(data_dir, str(self.data[0,0]*1000) + ".txt"), self.rawData, delimiter=',', header='timestamp, accel_x, accel_y, accel_z, gyro_x, gyro_y, gyro_z')
+        np.savetxt(os.path.join(data_dir, str(int(self.data[0,0]*1000)) + "_" + self.wearLocation + ".txt"), self.rawData, delimiter=',', header='timestamp, accel_x, accel_y, accel_z, gyro_x, gyro_y, gyro_z')
 
     def clear(self):
         # variable initialization

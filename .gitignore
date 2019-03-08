@@ -30,3 +30,6 @@ data
 database/node_modules/
 
 database/mobitrack/frontend/static/frontend/main.js
+
+database/mobitrack/.metawear/
+
