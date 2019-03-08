@@ -47,7 +47,8 @@ For Mobitrack, MySQL is used due to multiple reasons
 	10 Entering http://127.0.0.1:8000/wearingsession will hit the wearing session page
 	11 Search function is implemented under "All wearing session page"
 		- The behaviour is that whenever there is a change made inside a search bar, the query will be made to populate the corresponding database. If the query text is null, all exercise periods will be populated instead.	
-	12 (TODO) Export into csv format
+	12 Export the searched result into csv format
+		- The behaviour is once you click "export csv" button, a csv file with the data will be generated with the file name of query text.
 			
 
 4. Lauching Celery Service
