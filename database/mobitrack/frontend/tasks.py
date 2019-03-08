@@ -11,23 +11,28 @@ from frontend.metawear_state import State
 from celery.utils.log import get_task_logger
 from celery import task
 
+from pathlib import Path
+
 
 logger = get_task_logger(__name__)
 
 
 @task(bind=True)
 def startTracking(self, macAddress, location, patientID):
+    path_MAC = macAddress.replace(":", "-")
     m = Mobitrack()
-    m.data_folder = "/home/jason/git/Mobitrack/data"
+    m.data_folder = os.path.join(Path(os.path.dirname( __file__ )).parents[2], "data")
+    m.patientID = patientID
+    m.wearLocation = location
     device = MetaWear(macAddress)
     state = State(device, m)
 
     try:
         # Create lock file
-        lock_folder = "/home/jason/git/Mobitrack/lock"
+        lock_folder = os.path.join(Path(os.path.dirname( __file__ )).parents[2], "lock")
         if not os.path.exists(lock_folder):
             os.mkdir(lock_folder)
-        lock_file = os.path.join(lock_folder, macAddress + "_lock.txt")
+        lock_file = os.path.join(lock_folder, path_MAC + "_lock.txt")
         if os.path.isfile(lock_file):
             raise ValueError('Device %s already in use' % (macAddress) )
 
@@ -60,8 +65,6 @@ def startTracking(self, macAddress, location, patientID):
         m.writeData()
         m.plotData()
 
-        time.sleep(100)
-
         event = Event()
 
         state.device.on_disconnect = lambda s: event.set()
@@ -70,7 +73,12 @@ def startTracking(self, macAddress, location, patientID):
 
         self.update_state(state='DISCONNECTED')
         print("Disconnected")
-    except:
+    except (Exception, ArithmeticError) as e:
+        template = "An exception of type {0} occurred. Arguments:\n{1!r}"
+        message = template.format(type(e).__name__, e.args)
+        print(message)
+        print("Exception occured: ")
+        
         self.update_state(state='DISCONNECTING')
 
         print("Disconnecting device")
@@ -86,8 +94,9 @@ def startTracking(self, macAddress, location, patientID):
 
 @task(bind=True)
 def stopTracking(self, macAddress):
-    lock_folder = "/home/jason/git/Mobitrack/lock"
-    lock_file = os.path.join(lock_folder, macAddress + "_lock.txt")
+    path_MAC = macAddress.replace(":", "-")
+    lock_folder = os.path.join(Path(os.path.dirname( __file__ )).parents[2], "lock")
+    lock_file = os.path.join(lock_folder, path_MAC + "_lock.txt")
 
     try:
         if os.path.isfile(lock_file):

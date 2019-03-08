@@ -4,6 +4,10 @@ import matplotlib.pyplot as plt
 from datetime import datetime
 import os
 
+import mysql.connector
+import uuid
+import random
+
 class Mobitrack:
     # constructor
     def __init__(self):
@@ -42,7 +46,7 @@ class Mobitrack:
         self.segmentMinPkDist = self.frequency * 0.5
         self.segmentPkThr = 0.5
         self.segmentMaxPk2PkDist = self.frequency * 200 # seconds
-        self.wearLocation = 'RA' # RA, LA, RL, LL
+        self.wearLocation = 'right-lower-arm'
         
         # rep detection
         self.minROM = 40
@@ -53,6 +57,16 @@ class Mobitrack:
         self.minExerciseRepSeparationTime = 5 # seconds
         self.currentExercisePeriodNumReps = 0
         self.currentExercisePeriodStartIdx = -1
+
+        # database
+        self.db = {
+            "host": "localhost",
+            "user": "root", #yourusername
+            "passwd": "password" #yourpw
+        }
+        self.patientID = ""
+        self.sessionID = uuid.uuid4().hex[:16]
+
         
     def processStep(self, data):
         # validate data
@@ -114,12 +128,13 @@ class Mobitrack:
         
         if self.currentExercisePeriodNumReps > 0 and len(self.reps) > 0:
             if (isRep == -1 and self.numSamplesSeen >= self.reps[-1] + self.minExerciseRepSeparationTime * self.frequency + np.round(self.segmentWindow/2).astype(int)):
-                self.endSession()
+                self.endPeriod()
         
         # increment numSamplesSeen
         self.numSamplesSeen += 1
     
-    def endSession(self):
+    def endPeriod(self):
+        exercisePeriodStats = {"timestamp": datetime.utcfromtimestamp(self.data[self.currentExercisePeriodStartIdx, 0]).strftime('%Y-%m-%d %H:%M:%S')}
         if self.currentExercisePeriodNumReps > 0 and len(self.reps) > 0:
             duration = (self.reps[-1] - self.currentExercisePeriodStartIdx) / self.frequency
             repsPerMin = 0
@@ -130,9 +145,67 @@ class Mobitrack:
                     "numReps": self.currentExercisePeriodNumReps,
                     "duration": duration
                 }
-                print("Exericse Period Detected:", exercisePeriodStats)
 
+                # write exercise period to database
+                print("Exericse Period Detected:", exercisePeriodStats)
+                
+                try:
+                    print("Writing exercise period to database")
+                    db = mysql.connector.connect (
+                        host=self.db['host'],
+                        user=self.db['user'], #yourusername
+                        passwd=self.db['passwd'] #yourpw
+                    )
+                    mycursor = db.cursor()
+                    mycursor.execute("USE mobitrack")
+                    sql = "INSERT INTO database_exerciseperiod (PeriodID, PatientID, SessionID_id, Duration, Repetitions, Timestamp) VALUES (%s, %s, %s, %s, %s, %s)"
+                    periodID = uuid.uuid4().hex[:8]
+                    val = (periodID, self.patientID, self.sessionID, int(exercisePeriodStats['duration']), exercisePeriodStats['numReps'], exercisePeriodStats['timestamp'])
+                    mycursor.execute(sql, val)
+                    db.commit()
+                    mycursor.close()
+                    db.close()
+                    print("Exercise period successfully written to database")
+                except (Exception, ArithmeticError) as e:
+                    template = "An exception of type {0} occurred. Arguments:\n{1!r}"
+                    message = template.format(type(e).__name__, e.args)
+                    print(message)
+                    print("Exception occured: Error when writing exercise period to database")
             self.currentExercisePeriodNumReps = 0
+        return exercisePeriodStats
+
+    def endSession(self):
+        exercisePeriodStats = self.endPeriod()
+
+        # write wearing session to database
+        try:
+            print("Writing wearing session to database")
+            print("jme2op")
+            print(exercisePeriodStats)
+            print("jme3op")
+            db = mysql.connector.connect (
+                host=self.db['host'],
+                user=self.db['user'], #yourusername
+                passwd=self.db['passwd'] #yourpw
+            )
+            mycursor = db.cursor()
+            mycursor.execute("USE mobitrack")
+            sql = "INSERT INTO database_wearingsession (SessionID, PatientID, Location, TimeStamp) VALUES (%s, %s, %s, %s)"
+            val = (self.sessionID, self.patientID, self.wearLocation, exercisePeriodStats['timestamp'])
+            mycursor.execute(sql, val)
+            db.commit()
+            mycursor.close()
+            db.close()
+            print("Wearing session successfully written to database")
+        except (Exception, ArithmeticError) as e:
+            template = "An exception of type {0} occurred. Arguments:\n{1!r}"
+            message = template.format(type(e).__name__, e.args)
+            print(message)
+            print("Exception occured: Error when writing wearing session to database")
+
+        # generate new session ID
+        self.sessionID = uuid.uuid4().hex[:16]
+
         return
     
     def calibrateData(self, data):
@@ -204,13 +277,13 @@ class Mobitrack:
     
     def detectSegment(self):
         # segment detection, returns index if segment found, -1 otherwise
-        if self.wearLocation == 'RA' or self.wearLocation == 'LA':
+        if "arm" in self.wearLocation:
             if len(self.peaks) >= 2 and len(self.valleys) >= 1:
                 if self.numSamplesSeen - np.round(self.segmentWindow/2).astype(int) == self.peaks[-1]:
                     if self.peaks[-1] > self.valleys[-1] and self.valleys[-1] > self.peaks[-2]:
                         if (self.peaks[-1] - self.peaks[-2]) <= self.segmentMaxPk2PkDist:
                             return self.peaks[-1]
-        elif self.wearLocation == 'RL' or self.wearLocation == 'LL':
+        elif "leg" in self.wearLocation:
             if len(self.peaks) >= 1 and len(self.valleys) >= 2:
                 if self.numSamplesSeen - np.round(self.segmentWindow/2).astype(int) == self.valleys[-1]:
                     if self.valleys[-1] > self.peaks[-1] and self.peaks[-1] > self.valleys[-2]:
@@ -220,7 +293,7 @@ class Mobitrack:
     
     def detectRepetition(self):
         # repetition detection, returns index if rep found, -1 otherwise
-        if self.wearLocation == 'RA' or self.wearLocation == 'LA':
+        if "arm" in self.wearLocation:
             if len(self.peaks) >= 2 and len(self.valleys) >= 1:
                 if self.numSamplesSeen - np.round(self.segmentWindow/2).astype(int) == self.peaks[-1]:
                     ROM_f = self.data[self.peaks[-1],1] - self.data[self.valleys[-1],1]
@@ -228,7 +301,7 @@ class Mobitrack:
                     print("ROM:", round(min(ROM_f, ROM_b), 2))
                     if min(ROM_f, ROM_b) >= self.minROM:
                         return self.peaks[-1]
-        elif self.wearLocation == 'RL' or self.wearLocation == 'LL':
+        elif "leg" in self.wearLocation:
             if len(self.peaks) >= 1 and len(self.valleys) >= 2:
                 if self.numSamplesSeen - np.round(self.segmentWindow/2).astype(int) == self.valleys[-1]:
                     ROM_f = self.data[self.peaks[-1],1] - self.data[self.valleys[-1],1]
@@ -258,7 +331,7 @@ class Mobitrack:
             print("Directory " , data_dir ,  " created ")
         else:
             print("Directory " , data_dir ,  " already exists")
-        plt.savefig(os.path.join(data_dir, str(self.data[0,0]*1000) + ".png"))
+        plt.savefig(os.path.join(data_dir, str(int(self.data[0,0]*1000)) + "_" + self.wearLocation + ".png"))
         
         plt.show()
 
@@ -282,7 +355,7 @@ class Mobitrack:
             print("Directory " , data_dir ,  " created ")
         else:
             print("Directory " , data_dir ,  " already exists")
-        plt.savefig(os.path.join(data_dir, str(self.data[0,0]*1000) + "_raw.png"))
+        plt.savefig(os.path.join(data_dir, str(int(self.data[0,0]*1000)) + "_" + self.wearLocation + "_raw.png"))
         
         plt.show()
         
@@ -305,7 +378,7 @@ class Mobitrack:
             print("Directory " , data_dir ,  " created ")
         else:
             print("Directory " , data_dir ,  " already exists")
-        plt.savefig(os.path.join(data_dir, str(self.data[0,0]*1000) + "_smooth.png"))
+        plt.savefig(os.path.join(data_dir, str(int(self.data[0,0]*1000)) + "_" + self.wearLocation + "_smooth.png"))
         
         plt.show()
 
@@ -318,7 +391,7 @@ class Mobitrack:
             print("Directory " , data_dir ,  " already exists")
 
         # Log data to file
-        np.savetxt(os.path.join(data_dir, str(self.data[0,0]*1000) + ".txt"), self.rawData, delimiter=',', header='timestamp, accel_x, accel_y, accel_z, gyro_x, gyro_y, gyro_z')
+        np.savetxt(os.path.join(data_dir, str(int(self.data[0,0]*1000)) + "_" + self.wearLocation + ".txt"), self.rawData, delimiter=',', header='timestamp, accel_x, accel_y, accel_z, gyro_x, gyro_y, gyro_z')
 
     def clear(self):
         # variable initialization
@@ -333,3 +406,6 @@ class Mobitrack:
         self.valleys = np.empty(0,dtype=int)
         self.segments = np.empty(0,dtype=int)
         self.reps = np.empty(0,dtype=int)
+
+        # database
+        self.sessionID = uuid.uuid4().hex[:16]
