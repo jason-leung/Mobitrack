@@ -38,6 +38,7 @@ class Mobitrack:
         self.last_pk = -1
         self.peaks = np.empty(0,dtype=int)
         self.valleys = np.empty(0,dtype=int)
+        self.pkvl = np.empty(0,dtype=int)
         self.segments = np.empty(0,dtype=int)
         self.reps = np.empty(0,dtype=int)
         
@@ -49,6 +50,7 @@ class Mobitrack:
         self.wearLocation = 'right-lower-arm'
         
         # rep detection
+        self.last_pkvl_is_rep = False
         self.minROM = 40
         
         # exercise detection
@@ -69,10 +71,17 @@ class Mobitrack:
 
         
     def processStep(self, data):
+        status = {
+            "valid": False,
+            "isPeak": 0,
+            "isRep": -1
+        }
+
         # validate data
         if(len(data) != 7):
             print("Invalid data!")
-            return
+            return status
+        status["valid"] = True
         
         # calibrate data
         if self.numSamplesSeen >= self.rawDataStorageWindowSize:
@@ -91,29 +100,38 @@ class Mobitrack:
         
         # peak detection
         isPeak = self.detectPeaks()
+        status["isPeak"] = isPeak
         
         if isPeak == 1:
             if len(self.peaks) == self.eventStorageWindowSize:
                 self.peaks = np.copy(self.peaks[1:])
+            if len(self.pkvl) == self.eventStorageWindowSize:
+                self.pkvl = np.copy(self.pkvl[1:])
             self.peaks = np.append(self.peaks, self.numSamplesSeen - np.round(self.segmentWindow/2).astype(int))
+            self.pkvl = np.append(self.pkvl, self.numSamplesSeen - np.round(self.segmentWindow/2).astype(int))
             self.last_pk = self.numSamplesSeen - np.round(self.segmentWindow/2).astype(int)
         elif isPeak == -1:
             if len(self.valleys) == self.eventStorageWindowSize:
                 self.valleys = np.copy(self.valleys[1:])
+            if len(self.pkvl) == self.eventStorageWindowSize:
+                self.pkvl = np.copy(self.pkvl[1:])
             self.valleys = np.append(self.valleys, self.numSamplesSeen - np.round(self.segmentWindow/2).astype(int))
+            self.pkvl = np.append(self.pkvl, self.numSamplesSeen - np.round(self.segmentWindow/2).astype(int))
             self.last_pk = self.numSamplesSeen - np.round(self.segmentWindow/2).astype(int)
         
         # detect segments
-        isSegment = -1
-        if isPeak != 0: isSegment = self.detectSegment()
-        if isSegment != -1:
-            if len(self.segments) == self.eventStorageWindowSize:
-                self.segments = np.copy(self.segments[1:])
-            self.segments = np.append(self.segments, isSegment)
+        # isSegment = -1
+        # if isPeak != 0: isSegment = self.detectSegment()
+        # status["isSegment"] = isSegment
+        # if isSegment != -1:
+        #     if len(self.segments) == self.eventStorageWindowSize:
+        #         self.segments = np.copy(self.segments[1:])
+        #     self.segments = np.append(self.segments, isSegment)
         
         # detect repetitions
         isRep = -1
-        if isSegment != -1: isRep = self.detectRepetition()
+        if isPeak == 1 or isPeak == -1: isRep = self.detectRepetition()
+        status["isRep"] = isRep
         if isRep != -1:
             if len(self.reps) == self.eventStorageWindowSize:
                 self.reps = np.copy(self.reps[1:])
@@ -132,6 +150,8 @@ class Mobitrack:
         
         # increment numSamplesSeen
         self.numSamplesSeen += 1
+
+        return status
     
     def endPeriod(self):
         exercisePeriodStats = {"timestamp": datetime.utcfromtimestamp(self.data[self.currentExercisePeriodStartIdx, 0]).strftime('%Y-%m-%d %H:%M:%S')}
@@ -180,9 +200,6 @@ class Mobitrack:
         # write wearing session to database
         try:
             print("Writing wearing session to database")
-            print("jme2op")
-            print(exercisePeriodStats)
-            print("jme3op")
             db = mysql.connector.connect (
                 host=self.db['host'],
                 user=self.db['user'], #yourusername
@@ -277,13 +294,20 @@ class Mobitrack:
     
     def detectSegment(self):
         # segment detection, returns index if segment found, -1 otherwise
-        if "arm" in self.wearLocation:
-            if len(self.peaks) >= 2 and len(self.valleys) >= 1:
-                if self.numSamplesSeen - np.round(self.segmentWindow/2).astype(int) == self.peaks[-1]:
-                    if self.peaks[-1] > self.valleys[-1] and self.valleys[-1] > self.peaks[-2]:
-                        if (self.peaks[-1] - self.peaks[-2]) <= self.segmentMaxPk2PkDist:
-                            return self.peaks[-1]
-        elif "leg" in self.wearLocation:
+        # if "arm" in self.wearLocation:
+        #     if len(self.peaks) >= 2 and len(self.valleys) >= 1:
+        #         if self.numSamplesSeen - np.round(self.segmentWindow/2).astype(int) == self.peaks[-1]:
+        #             if self.peaks[-1] > self.valleys[-1] and self.valleys[-1] > self.peaks[-2]:
+        #                 if (self.peaks[-1] - self.peaks[-2]) <= self.segmentMaxPk2PkDist:
+        #                     return self.peaks[-1]
+        # elif "leg" in self.wearLocation:
+        #     if len(self.peaks) >= 1 and len(self.valleys) >= 2:
+        #         if self.numSamplesSeen - np.round(self.segmentWindow/2).astype(int) == self.valleys[-1]:
+        #             if self.valleys[-1] > self.peaks[-1] and self.peaks[-1] > self.valleys[-2]:
+        #                 if (self.valleys[-1] - self.valleys[-2]) <= self.segmentMaxPk2PkDist:
+        #                     return self.valleys[-1]
+
+        if "arm" in self.wearLocation or "leg" in self.wearLocation:
             if len(self.peaks) >= 1 and len(self.valleys) >= 2:
                 if self.numSamplesSeen - np.round(self.segmentWindow/2).astype(int) == self.valleys[-1]:
                     if self.valleys[-1] > self.peaks[-1] and self.peaks[-1] > self.valleys[-2]:
@@ -293,22 +317,43 @@ class Mobitrack:
     
     def detectRepetition(self):
         # repetition detection, returns index if rep found, -1 otherwise
-        if "arm" in self.wearLocation:
-            if len(self.peaks) >= 2 and len(self.valleys) >= 1:
-                if self.numSamplesSeen - np.round(self.segmentWindow/2).astype(int) == self.peaks[-1]:
-                    ROM_f = self.data[self.peaks[-1],1] - self.data[self.valleys[-1],1]
-                    ROM_b = self.data[self.peaks[-2],1] - self.data[self.valleys[-1],1]
-                    print("ROM:", round(min(ROM_f, ROM_b), 2))
+        # if "arm" in self.wearLocation:
+        #     if len(self.peaks) >= 2 and len(self.valleys) >= 1:
+        #         if self.numSamplesSeen - np.round(self.segmentWindow/2).astype(int) == self.peaks[-1]:
+        #             ROM_f = abs(self.data[self.peaks[-1],1] - self.data[self.valleys[-1],1])
+        #             ROM_b = abs(self.data[self.peaks[-2],1] - self.data[self.valleys[-1],1])
+        #             print("ROM:", round(min(ROM_f, ROM_b), 2))
+        #             if min(ROM_f, ROM_b) >= self.minROM:
+        #                 return self.peaks[-1]
+        # elif "leg" in self.wearLocation:
+        #     if len(self.peaks) >= 1 and len(self.valleys) >= 2:
+        #         if self.numSamplesSeen - np.round(self.segmentWindow/2).astype(int) == self.valleys[-1]:
+        #             ROM_f = abs(self.data[self.peaks[-1],1] - self.data[self.valleys[-1],1])
+        #             ROM_b = abs(self.data[self.peaks[-1],1] - self.data[self.valleys[-2],1])
+        #             print("ROM:", round(min(ROM_f, ROM_b), 2))
+        #             if min(ROM_f, ROM_b) >= self.minROM:
+        #                 return self.peaks[-1]
+
+        # if "arm" in self.wearLocation or "leg" in self.wearLocation:
+        #     if len(self.peaks) >= 1 and len(self.valleys) >= 2:
+        #         if self.numSamplesSeen - np.round(self.segmentWindow/2).astype(int) == self.valleys[-1]:
+        #             ROM_f = abs(self.data[self.peaks[-1],1] - self.data[self.valleys[-1],1])
+        #             ROM_b = abs(self.data[self.peaks[-1],1] - self.data[self.valleys[-2],1])
+        #             print("ROM:", round(min(ROM_f, ROM_b), 2))
+        #             if min(ROM_f, ROM_b) >= self.minROM:
+        #                 return self.peaks[-1]
+
+        if "arm" in self.wearLocation or "leg" in self.wearLocation:
+            if len(self.pkvl) >= 3:
+                ROM_f = abs(self.data[self.pkvl[-1],1] - self.data[self.pkvl[-2],1])
+                ROM_b = abs(self.data[self.pkvl[-2],1] - self.data[self.pkvl[-3],1])
+                print("ROM:", round(min(ROM_f, ROM_b), 2))
+
+                if not self.last_pkvl_is_rep:
                     if min(ROM_f, ROM_b) >= self.minROM:
-                        return self.peaks[-1]
-        elif "leg" in self.wearLocation:
-            if len(self.peaks) >= 1 and len(self.valleys) >= 2:
-                if self.numSamplesSeen - np.round(self.segmentWindow/2).astype(int) == self.valleys[-1]:
-                    ROM_f = self.data[self.peaks[-1],1] - self.data[self.valleys[-1],1]
-                    ROM_b = self.data[self.peaks[-1],1] - self.data[self.valleys[-2],1]
-                    print("ROM:", round(min(ROM_f, ROM_b), 2))
-                    if min(ROM_f, ROM_b) >= self.minROM:
-                        return self.peaks[-1]
+                        self.last_pkvl_is_rep = True
+                        return self.pkvl[-1]
+                self.last_pkvl_is_rep = False
         return -1
     
     def plotData(self):
@@ -333,7 +378,7 @@ class Mobitrack:
             print("Directory " , data_dir ,  " already exists")
         plt.savefig(os.path.join(data_dir, str(int(self.data[0,0]*1000)) + "_" + self.wearLocation + ".png"))
         
-        plt.show()
+        # plt.show()
 
     def plotRawData(self):
         plt.figure(figsize=(20,10))
@@ -357,7 +402,7 @@ class Mobitrack:
             print("Directory " , data_dir ,  " already exists")
         plt.savefig(os.path.join(data_dir, str(int(self.data[0,0]*1000)) + "_" + self.wearLocation + "_raw.png"))
         
-        plt.show()
+        # plt.show()
         
     def plotSmoothData(self):
         plt.figure(figsize=(20,10))
@@ -380,7 +425,7 @@ class Mobitrack:
             print("Directory " , data_dir ,  " already exists")
         plt.savefig(os.path.join(data_dir, str(int(self.data[0,0]*1000)) + "_" + self.wearLocation + "_smooth.png"))
         
-        plt.show()
+        # plt.show()
 
     def writeData(self):
         data_dir = os.path.join(self.data_folder, datetime.today().strftime('%Y-%m-%d'))
@@ -404,8 +449,10 @@ class Mobitrack:
         self.last_pk = -1
         self.peaks = np.empty(0,dtype=int)
         self.valleys = np.empty(0,dtype=int)
+        self.pkvl = np.empty(0,dtype=int)
         self.segments = np.empty(0,dtype=int)
         self.reps = np.empty(0,dtype=int)
+        self.last_pkvl_is_rep = False
 
         # database
         self.sessionID = uuid.uuid4().hex[:16]

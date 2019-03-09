@@ -1,6 +1,7 @@
 from __future__ import print_function
 from ctypes import c_void_p, cast, POINTER
 from mbientlab.metawear import MetaWear, libmetawear, parse_value, cbindings
+from mbientlab.metawear.cbindings import *
 from threading import Event
 from sys import argv
 import os
@@ -79,8 +80,10 @@ def startTracking(self, macAddress, location, patientID, led_on, target_angle):
     m.data_folder = os.path.join(Path(os.path.dirname( __file__ )).parents[2], "data")
     m.patientID = patientID
     m.wearLocation = location
+    m.minROM = target_angle - 5
     device = MetaWear(macAddress)
     state = State(device, m)
+    state.led = led_on
 
     try:
         # Create lock file
@@ -120,6 +123,8 @@ def startTracking(self, macAddress, location, patientID, led_on, target_angle):
         m.writeData()
         m.plotData()
 
+        state.stop()
+
         event = Event()
 
         state.device.on_disconnect = lambda s: event.set()
@@ -135,6 +140,7 @@ def startTracking(self, macAddress, location, patientID, led_on, target_angle):
         print("Exception occured: ")
         
         self.update_state(state='DISCONNECTING')
+        state.stop()
 
         print("Disconnecting device")
         event = Event()
@@ -142,6 +148,8 @@ def startTracking(self, macAddress, location, patientID, led_on, target_angle):
         state.device.on_disconnect = lambda s: event.set()
         libmetawear.mbl_mw_debug_reset(state.device.board)
         event.wait()
+
+        stopTracking(macAddress)
 
         self.update_state(state='DISCONNECTED')
         print("Disconnected")
