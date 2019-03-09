@@ -80,8 +80,10 @@ def startTracking(self, macAddress, location, patientID, led_on, target_angle):
     m.data_folder = os.path.join(Path(os.path.dirname( __file__ )).parents[2], "data")
     m.patientID = patientID
     m.wearLocation = location
+    m.minROM = target_angle - 5
     device = MetaWear(macAddress)
     state = State(device, m)
+    state.led = led_on
 
     try:
         # Create lock file
@@ -121,7 +123,7 @@ def startTracking(self, macAddress, location, patientID, led_on, target_angle):
         m.writeData()
         m.plotData()
 
-        state.led_on(LedColor.RED, 2)
+        state.stop()
 
         event = Event()
 
@@ -138,6 +140,7 @@ def startTracking(self, macAddress, location, patientID, led_on, target_angle):
         print("Exception occured: ")
         
         self.update_state(state='DISCONNECTING')
+        state.stop()
 
         print("Disconnecting device")
         event = Event()

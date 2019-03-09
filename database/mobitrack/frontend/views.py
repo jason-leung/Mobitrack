@@ -68,10 +68,10 @@ def formSubmit(request):
         data = json.loads(request.body)
 
         # For physical device
-        #x = startTracking.delay(MAC_ADDRESS, data['wearLocation'], data['patientID'], data['led_on'], data['target_angle'])
+        x = startTracking.delay(MAC_ADDRESS, data['wearLocation'], data['patientID'], data['led_on'], data['target_angle'])
 
         # For mocking device
-        x = startTrackingMock.delay(MAC_ADDRESS, data['wearLocation'], data['patientID'], data['led_on'], data['target_angle'])
+        # x = startTrackingMock.delay(MAC_ADDRESS, data['wearLocation'], data['patientID'], data['led_on'], data['target_angle'])
 
 
     return HttpResponse(json.dumps({'task_id':x.task_id}), content_type='application/json')
