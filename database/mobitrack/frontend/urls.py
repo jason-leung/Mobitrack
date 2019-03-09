@@ -10,5 +10,6 @@ urlpatterns = [
     path('pairmobitrack', views.pairmobitrack, name='pairmobitrack' ),
     path('pairmobitrack/submit/', views.formSubmit, name='formSubmit' ),
     path('pairmobitrack/stopMonitoring/', views.stopMonitoring, name='stopmonitor'),
+    path('pairmobitrack/getStatus/', views.getStatus, name='getStatus'),
     url(r'^pairmobitrack/(?P<task_id>[\w.@+-]+)/$', views.get_progress, name='task_status'),
 ]
