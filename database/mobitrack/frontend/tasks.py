@@ -1,6 +1,7 @@
 from __future__ import print_function
 from ctypes import c_void_p, cast, POINTER
 from mbientlab.metawear import MetaWear, libmetawear, parse_value, cbindings
+from mbientlab.metawear.cbindings import *
 from threading import Event
 from sys import argv
 import os
@@ -120,6 +121,8 @@ def startTracking(self, macAddress, location, patientID, led_on, target_angle):
         m.writeData()
         m.plotData()
 
+        state.led_on(LedColor.RED, 2)
+
         event = Event()
 
         state.device.on_disconnect = lambda s: event.set()
@@ -142,6 +145,8 @@ def startTracking(self, macAddress, location, patientID, led_on, target_angle):
         state.device.on_disconnect = lambda s: event.set()
         libmetawear.mbl_mw_debug_reset(state.device.board)
         event.wait()
+
+        stopTracking(macAddress)
 
         self.update_state(state='DISCONNECTED')
         print("Disconnected")
