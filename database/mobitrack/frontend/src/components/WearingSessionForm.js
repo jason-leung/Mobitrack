@@ -1,5 +1,7 @@
 import React, {Component} from 'react';  
 import PropTypes from "prop-types";
+import FormErrors from "./FormErrors";
+
 
 const API_URL = 'pairmobitrack'
 
@@ -47,7 +49,6 @@ var class_ref = props.obj;
 }
 
 function StopButton(props) {
-  console.log(props)
   var class_ref = props.obj;
   if(props.visibility){
     return(
@@ -74,7 +75,12 @@ class WearingSessionForm extends React.Component {
       patientID: '',
       connectionStatus: null,
       led_on: false,
-      target_angle: 45,
+      targetAngle: 45,
+
+      formErrors: {patientID: '', targetAngle: ''},
+      patientIDValid: false,
+      targetAngleValid: true,
+      formValid: false,
     };
 
 
@@ -84,12 +90,13 @@ class WearingSessionForm extends React.Component {
     this.handleStopMonitoring = this.handleStopMonitoring.bind(this);
     this.setConnectionStatus = this.setConnectionStatus.bind(this);
     this.handleCheckBox = this.handleCheckBox.bind(this);
+    this.handleTargetAngleChange = this.handleTargetAngleChange.bind(this);
+    this.validateField = this.validateField.bind(this);
 
     this.endpoint = this.props.endpoint;
   }
 
   componentWillMount() {
-
     const { wearLocation, patientID } = this.state;
     const lead = { wearLocation, patientID };
     const conf = {
@@ -108,17 +115,50 @@ class WearingSessionForm extends React.Component {
 
   }
 
+  validateField(fieldName, value) {
+    var fieldValidationErrorsTemp = this.state.formErrors;
+    var patientIDValidTemp = this.state.patientIDValid;
+    var targetAngleValidTemp = this.state.targetAngleValid;
+    switch(fieldName) {
+      case 'patientID':
+          if (value.length == 8) {
+            patientIDValidTemp = true;
+            fieldValidationErrorsTemp.patientID = '';
+          }
+          else {
+            patientIDValidTemp = false;
+            fieldValidationErrorsTemp.patientID = 'Patient ID must be 8 characters.';
+          }
+        break;
+      case 'targetAngle':
+        var angle = parseFloat(value);
+        if (angle >= 5 && angle <= 120) {
+          targetAngleValidTemp = true;
+          fieldValidationErrorsTemp.targetAngle = '';
+        }
+        else {
+          targetAngleValidTemp = false;
+          fieldValidationErrorsTemp.targetAngle = 'Target range of motion must be between 5 and 120 degrees.';
+        }
+        break;
+      default:
+        break;
+    }
+    this.setState({formErrors: fieldValidationErrorsTemp});
+    this.setState({patientIDValid: patientIDValidTemp});
+    this.setState({targetAngleValid: targetAngleValidTemp});
+    this.setState({formValid: patientIDValidTemp && targetAngleValidTemp});
+  }
+
   checkIfAlreadyRunning(response) {
     if(response['currently_running']) {
       this.setState({startMonitoringButtonActive: false});
       this.setTaskID(response)
     } 
-    console.log("currently not monitoring");
   }
 
   setTaskID(id) {
     this.state.task_id = id['task_id'];
-    console.log(this.state.task_id);
     updateProgress(this.state.task_id, this);
   }
 
@@ -129,17 +169,22 @@ class WearingSessionForm extends React.Component {
   finishedAnswer(result) {
     // Reset to original view
     this.setState({startMonitoringButtonActive: true, connectionStatus: null});
-    console.log(result)
   }
 
   handleStartMonitoring(event) {
     event.preventDefault();
+
+    if (!this.state.formValid) {
+      console.log('invalid form');
+      console.log(this.state)
+      return;
+    }
+
     console.log(this.state.startedMonitoring + " Sumbitted");
     this.setState({startMonitoringButtonActive: false});
 
-
-    const { wearLocation, patientID, led_on, target_angle } = this.state;
-    const lead = { wearLocation, patientID, led_on, target_angle};
+    const { wearLocation, patientID, led_on, targetAngle } = this.state;
+    const lead = { wearLocation, patientID, led_on, targetAngle};
     const conf = {
       credentials: 'include',
       method: "POST",
@@ -163,6 +208,8 @@ class WearingSessionForm extends React.Component {
 
   handlePatientIDChange(event) {
     this.setState({patientID: event.target.value});
+    // Validate input 
+    this.validateField('patientID', event.target.value);
   }
 
   handleCheckBox(event) {
@@ -170,7 +217,13 @@ class WearingSessionForm extends React.Component {
   }
 
   handleTargetAngleChange(event) {
-    this.setState({target_angle: event.target.value});
+    var angle = parseFloat(event.target.value);
+    if (isNaN(angle)) {
+      console.log('angle is NAN');
+      angle = "";
+    }
+    this.setState({targetAngle: angle});
+    this.validateField('targetAngle', angle);
   }
 
   handleStopMonitoring(event){
@@ -223,7 +276,7 @@ class WearingSessionForm extends React.Component {
 
         <label>
           Target ROM:  
-          <input type="text" value={this.state.target_angle} onChange={this.handleTargetAngleChange} />
+          <input type="text" value={this.state.targetAngle} onChange={this.handleTargetAngleChange} />
         </label>
 
 
@@ -236,6 +289,11 @@ class WearingSessionForm extends React.Component {
         <StopButton visibility={!this.state.startMonitoringButtonActive} obj={this} />
       </form>
         <ConnectionStatus status={this.state.connectionStatus} />
+
+
+        <div className="panel panel-default">
+          <FormErrors formErrors={this.state.formErrors} />
+        </div>
       </div>
     );
   }
