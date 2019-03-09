@@ -80,7 +80,13 @@ def startTracking(self, macAddress, location, patientID, led_on, target_angle):
     m.data_folder = os.path.join(Path(os.path.dirname( __file__ )).parents[2], "data")
     m.patientID = patientID
     m.wearLocation = location
-    m.minROM = target_angle - 5
+
+    minROM_slack = 5
+    m.minROM = target_angle - minROM_slack
+    if m.minROM <= 5.:
+        min.ROM = 5.
+    if m.minROM >= 120.:
+        min.ROM = 120.
     device = MetaWear(macAddress)
     state = State(device, m)
     state.led = led_on
