@@ -4,13 +4,15 @@ import os
 import numpy as np
 
 # data_dir = '../data/2019-03-07'
-data_dir = '/home/jason/git/Mobitrack/data/test'
+# data_dir = '/home/jason/git/Mobitrack/data/2019-03-09/45_degree_device_on_back'
+data_dir = '/home/jason/git/Mobitrack/data/2019-03-09/45_degree_device_on_side'
 files = [os.path.join(data_dir, f) for f in os.listdir(data_dir) if os.path.isfile(os.path.join(data_dir, f)) and f.endswith('.txt')]
 print(files,"\n")
 
 for f in files:
 	# f = 'a_specific_file'
-	# f = '/home/jason/git/Mobitrack/data/MetaMotion/data_20190309-test2.txt'
+	# f = '/home/jason/git/Mobitrack/data/2019-03-09/45_degree_device_on_side/1552174093304_left-upper-arm.txt'
+	f = '/home/jason/git/Mobitrack/data/2019-03-09/1552181722_left-upper-arm.txt'
 	# data = pd.read_csv(f).values
 	csv_data = np.genfromtxt(f, dtype=float, delimiter=',', names=True)
 	data = np.empty((csv_data['timestamp'].shape[0], 7))
@@ -23,11 +25,12 @@ for f in files:
 	data[:,6] = csv_data['gyro_z']
 
 	# print(data.shape)
-	data[:,0] = data[:,0] / 1000
+	data[:,0] = data[:,0]
 
 	m = Mobitrack()
 	m.patientID = 00000000
-	m.complementaryFilterAlpha = 1
+	# m.smoothWindowSize = m.frequency * 1
+	# m.complementaryFilterAlpha = 1
 
 	# set wear location
 	if 'left-lower-arm' in f:
@@ -49,12 +52,15 @@ for f in files:
 
 	print(f)
 	for i in range(data.shape[0]):
+		# print(data[i,:])
 		m.processStep(data[i,:])
 
 	m.endSession()
 
 	m.plotData()
 	m.plotRawData()
-	#     m.plotSmoothData()
+	m.plotSmoothData()
+	m.writeData()
+
 	m.clear()
-	# break
+	break

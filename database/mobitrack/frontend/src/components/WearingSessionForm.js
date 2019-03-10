@@ -75,7 +75,7 @@ class WearingSessionForm extends React.Component {
       patientID: '',
       connectionStatus: null,
       led_on: false,
-      targetAngle: 45,
+      f: 45,
 
       formErrors: {patientID: '', targetAngle: ''},
       patientIDValid: false,

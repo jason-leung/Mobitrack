@@ -17,13 +17,30 @@ class State:
       self.processor = None
       self.mobitrack = mobitrack
       self.led = False
+      self.led_on_bool = False
+      self.steps_since_led_on = 0
+      self.steps_to_keep_led_on = 30
 
   def data_handler(self, ctx, data):
       values = parse_value(data, n_elem=2)
       time_stamp = data.contents.epoch
       status = self.mobitrack.processStep(np.array([time_stamp / 1000,  values[0].x, values[0].y, values[0].z, values[1].x, values[1].y, values[1].z]))
+      # print(np.array([time_stamp / 1000, values[1].x, values[1].y, values[1].z]))
 
-      if self.led and status["isRep"] != -1: self.led_on(LedColor.BLUE, 0.3)
+      if self.led_on_bool == True:
+        self.steps_since_led_on = self.steps_since_led_on + 1
+
+      if self.steps_since_led_on >= self.steps_to_keep_led_on:
+        # turn LED OFF
+        libmetawear.mbl_mw_led_stop_and_clear(self.device.board)
+        self.steps_since_led_on = 0
+        self.led_on_bool = False
+
+      if self.led and status["isRep"] != -1: 
+        # turn LED ON
+        self.led_on_bool = True
+        self.steps_since_led_on = 0
+        self.led_on(LedColor.BLUE, 0, False)
 
   def setup(self):
       libmetawear.mbl_mw_settings_set_connection_parameters(self.device.board, 7.5, 7.5, 0, 6000)
