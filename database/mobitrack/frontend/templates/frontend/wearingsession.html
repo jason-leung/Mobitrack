@@ -16,7 +16,6 @@
 	  <!-- Font Awesome JS -->
 	  <script defer src="https://use.fontawesome.com/releases/v5.0.13/js/solid.js" integrity="sha384-tzzSw1/Vo+0N5UhStP3bvwWPq+uvzCMfrN1fEFe+xBmv1C/AtVX5K0uZtmcHitFZ" crossorigin="anonymous"></script>
 	  <script defer src="https://use.fontawesome.com/releases/v5.0.13/js/fontawesome.js" integrity="sha384-6OIrr52G08NpOFSZdxxz1xdNSndlD4vdcf/q2myIUVO0VsqaGHJsB0RaBE01VTOY" crossorigin="anonymous"></script>
-
 	</head>
 	<body>
 	  <div class="containter-fluid">
@@ -25,21 +24,17 @@
 	  			<div class="sidebar-header">
 	  				<h3>Mobitrack</h3>
 				</div>
-				
 				<ul class="list-unstyled componenets">
-					<li>
+					<li class="active">
 						<a href="{% url 'index'%}">Home</a>
 					</li>	  	  
-					<li class="active">
-						<a href="{% url 'wearingsession'%}">All Wearing Sessions</a>
-					</li>
 					<li>
 						<a href="{% url 'pairmobitrack'%}">Pair Mobitrack</a>
 					</li>
 				</ul>
 			</nav>
-			<div class="col-sm-10 ">
-				<h1>All Wearing Sessions</h1>
+			<div class="col-sm-10">
+				<img src="{% static 'images/logo.png' %}" alt="Mobitrack" class="logo">
 				<div class="container">
 				  <div id="wearingsession" class="columns"><!-- React --></div>
 				</div>

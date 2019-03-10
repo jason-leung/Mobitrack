@@ -30,16 +30,13 @@
 					<li>
 						<a href="{% url 'index'%}">Home</a>
 					</li>	  	  
-					<li>
-						<a href="{% url 'wearingsession'%}">All Wearing Sessions</a>
-					</li>
 					<li class="active">
 						<a href="{% url 'pairmobitrack'%}">Pair Mobitrack</a>
 					</li>
 				</ul>
 			</nav>
 			<div class="col-sm-10 ">
-				<h1>Pair Mobitrack</h1>
+				<img src="{% static 'images/logo.png' %}" alt="Mobitrack" class="logo">
 				{% block content %}
 				<section class="section">
 					<div class="container">
