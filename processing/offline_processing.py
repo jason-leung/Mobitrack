@@ -3,16 +3,29 @@ from mobitrack import Mobitrack
 import os
 import numpy as np
 
+def uncalibrateData(data, m):
+	uncalibrated_data = np.copy(data)
+	uncalibrated_data[:,0] = uncalibrated_data[:,0]
+	
+	uncalibrated_data[:, 1:4] = uncalibrated_data[:, 1:4] * m.calibrationAsens / m.calibrationG
+	uncalibrated_data[:, 4:7] = uncalibrated_data[:, 4:7] * m.calibrationGsens
+
+	return uncalibrated_data
+
+
+# Data collected prior to March 9 was calibrated before being saved 
+is_legacy_data = True
+
 # data_dir = '../data/2019-03-07'
 # data_dir = '/home/jason/git/Mobitrack/data/2019-03-09/45_degree_device_on_back'
-data_dir = '/home/jason/git/Mobitrack/data/2019-03-09/45_degree_device_on_side'
+data_dir = r'C:\Users\andre\OneDrive\School\FYDP\Mobitrack\data\Mobitrack\data\2019-03-07'
 files = [os.path.join(data_dir, f) for f in os.listdir(data_dir) if os.path.isfile(os.path.join(data_dir, f)) and f.endswith('.txt')]
 print(files,"\n")
 
 for f in files:
 	# f = 'a_specific_file'
 	# f = '/home/jason/git/Mobitrack/data/2019-03-09/45_degree_device_on_side/1552174093304_left-upper-arm.txt'
-	f = '/home/jason/git/Mobitrack/data/2019-03-09/1552181722_left-upper-arm.txt'
+	f = r'C:\Users\andre\OneDrive\School\FYDP\Mobitrack\data\Mobitrack\data\2019-03-07\1551994890698_left-lower-leg.txt'
 	# data = pd.read_csv(f).values
 	csv_data = np.genfromtxt(f, dtype=float, delimiter=',', names=True)
 	data = np.empty((csv_data['timestamp'].shape[0], 7))
@@ -24,13 +37,14 @@ for f in files:
 	data[:,5] = csv_data['gyro_y']
 	data[:,6] = csv_data['gyro_z']
 
-	# print(data.shape)
-	data[:,0] = data[:,0]
-
 	m = Mobitrack()
 	m.patientID = 00000000
 	# m.smoothWindowSize = m.frequency * 1
 	# m.complementaryFilterAlpha = 1
+
+	# If data was calibrated before saving, uncalibrate it. This ensures that the mobitrack.py class does not require any direct changes
+	if is_legacy_data:
+		data = uncalibrateData(data, m)
 
 	# set wear location
 	if 'left-lower-arm' in f:
