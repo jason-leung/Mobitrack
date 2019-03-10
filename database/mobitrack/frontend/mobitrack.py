@@ -78,8 +78,6 @@ class Mobitrack:
             "isRep": -1
         }
 
-        print(data)
-
         # validate data
         if(len(data) != 7):
             print("Invalid data!")
