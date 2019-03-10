@@ -3,10 +3,11 @@ import React from "react";
 import ReactDOM from "react-dom";
 import DataProvider from "./DataProvider";
 import Table from "./Table";
+import DataTable from "./DataTable";
 import Search from "./Search";
 
 const Session = () => (
-  <Search render={results => <Table data={results} />} />
+  <Search render={results => <DataTable data={results} />} />
 );
 
 const wrapper = document.getElementById("wearingsession");
