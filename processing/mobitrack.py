@@ -14,6 +14,7 @@ class Mobitrack:
         
         # variable initialization
         self.rawData = np.empty((0,7)) # time, ax, ay, az, gx, gy, gz
+        self.calibratedData = np.empty((0,7)) # time, ax, ay, az, gx, gy, gz
         self.smoothData = np.empty((0,7)) # time, ax, ay, az, gx, gy, gz
         self.data = np.empty((0,3)) # time, pitch, roll
         self.numSamplesSeen = 0
@@ -77,17 +78,25 @@ class Mobitrack:
             "isRep": -1
         }
 
+        # print(data)
+
         # validate data
         if(len(data) != 7):
             print("Invalid data!")
             return status
         status["valid"] = True
+
+
+        # get raw data
+        if self.numSamplesSeen >= self.rawDataStorageWindowSize:
+            self.rawData = np.copy(self.rawData[1:])
+        self.rawData = np.vstack((self.rawData, data))
         
         # calibrate data
         if self.numSamplesSeen >= self.rawDataStorageWindowSize:
-            self.rawData = np.copy(self.rawData[1:])
-        self.rawData = np.vstack((self.rawData, self.calibrateData(data)))
-        
+            self.calibratedData = np.copy(self.calibratedData[1:])
+        self.calibratedData = np.vstack((self.calibratedData, self.calibrateData(data)))
+
         # smooth data
         if self.numSamplesSeen >= self.rawDataStorageWindowSize:
             self.smoothData = np.copy(self.smoothData[1:])
@@ -233,14 +242,14 @@ class Mobitrack:
     
     def preprocessData(self):
         # smooth data with a moving average for specified window size
-        smoothData = np.copy(self.rawData[-1,:])
+        smoothData = np.copy(self.calibratedData[-1,:])
             
         startSumIdx = 0
         if self.numSamplesSeen >= self.smoothWindowSize:
             startSumIdx = -self.smoothWindowSize
         
         for i in range(1,7):
-            smoothData[i] = np.mean(self.rawData[int(startSumIdx):,i])
+            smoothData[i] = np.mean(self.calibratedData[int(startSumIdx):,i])
         return smoothData
     
     def computeRotationAngles(self):
@@ -254,19 +263,20 @@ class Mobitrack:
         # estimate pitch and roll based on acceleration
         pitch_est_acc = np.rad2deg(np.arctan2(data[1], np.sqrt(data[2]**2 + data[3]**2))) # range [-90, 90]
         roll_est_acc = np.rad2deg(np.arctan2(data[2], np.sqrt(data[1]**2 + data[3]**2))) # range [-90, 90]
-        # pitch_est_acc = np.rad2deg(np.arctan(data[1] / (np.sqrt(data[2]**2 + data[3]**2)))) # range [-90, 90]
-        # roll_est_acc = np.rad2deg(np.arctan(data[2] / (np.sqrt(data[1]**2 + data[3]**2)))) # range [-90, 90]
         
         # use acceleration data only for first sample
         if(self.numSamplesSeen == 0):
+            print("first sample")
             angle_est[1] = pitch_est_acc
             angle_est[2] = roll_est_acc
         # use complementary filter otherwise
         else:
             # estimate pitch and roll based on gyroscope
             dt = self.smoothData[-1,0] - self.smoothData[-2,0]
-            pitch_est_gyr = self.data[-1,1] + dt * data[4]
-            roll_est_gyr = self.data[-1,2] + dt * data[5]
+
+            if dt > 0.15: print("dt:",dt)
+            pitch_est_gyr = self.data[-1,1] + dt * data[5]
+            roll_est_gyr = self.data[-1,2] + dt * data[4]
             
             # complementary filter
             angle_est[1] = (1-self.complementaryFilterAlpha) * pitch_est_gyr + self.complementaryFilterAlpha * pitch_est_acc
@@ -378,9 +388,9 @@ class Mobitrack:
             print("Directory " , data_dir ,  " created ")
         else:
             print("Directory " , data_dir ,  " already exists")
-        plt.savefig(os.path.join(data_dir, str(int(self.data[0,0]*1000)) + "_" + self.wearLocation + ".png"))
+        plt.savefig(os.path.join(data_dir, str(int(self.data[0,0])) + "_" + self.wearLocation + ".png"))
         
-        # plt.show()
+        plt.show()
 
     def plotRawData(self):
         plt.figure(figsize=(20,10))
@@ -388,12 +398,12 @@ class Mobitrack:
         plt.plot(self.rawData[:,0], self.rawData[:,1], label='ax')
         plt.plot(self.rawData[:,0], self.rawData[:,2], label='ay')
         plt.plot(self.rawData[:,0], self.rawData[:,3], label='az')
-        # plt.plot(self.rawData[:,0], self.rawData[:,4], label='gx')
-        # plt.plot(self.rawData[:,0], self.rawData[:,5], label='gy')
-        # plt.plot(self.rawData[:,0], self.rawData[:,6], label='gz')
+        plt.plot(self.rawData[:,0], self.rawData[:,4], label='gx')
+        plt.plot(self.rawData[:,0], self.rawData[:,5], label='gy')
+        plt.plot(self.rawData[:,0], self.rawData[:,6], label='gz')
         
         plt.xlabel('Time (s)')
-        plt.ylabel('Raw IMU Readings (a in m/s^2, g in rad/s)')
+        plt.ylabel('Raw IMU Readings (a in g, g in deg/s)')
         plt.legend()
         
         data_dir = os.path.join(self.data_folder, datetime.today().strftime('%Y-%m-%d'))
@@ -402,7 +412,7 @@ class Mobitrack:
             print("Directory " , data_dir ,  " created ")
         else:
             print("Directory " , data_dir ,  " already exists")
-        plt.savefig(os.path.join(data_dir, str(int(self.data[0,0]*1000)) + "_" + self.wearLocation + "_raw.png"))
+        plt.savefig(os.path.join(data_dir, str(int(self.data[0,0])) + "_" + self.wearLocation + "_raw.png"))
         
         # plt.show()
         
@@ -425,7 +435,7 @@ class Mobitrack:
             print("Directory " , data_dir ,  " created ")
         else:
             print("Directory " , data_dir ,  " already exists")
-        plt.savefig(os.path.join(data_dir, str(int(self.data[0,0]*1000)) + "_" + self.wearLocation + "_smooth.png"))
+        plt.savefig(os.path.join(data_dir, str(int(self.data[0,0])) + "_" + self.wearLocation + "_smooth.png"))
         
         # plt.show()
 
@@ -438,7 +448,7 @@ class Mobitrack:
             print("Directory " , data_dir ,  " already exists")
 
         # Log data to file
-        np.savetxt(os.path.join(data_dir, str(int(self.data[0,0]*1000)) + "_" + self.wearLocation + ".txt"), self.rawData, delimiter=',', header='timestamp, accel_x, accel_y, accel_z, gyro_x, gyro_y, gyro_z')
+        np.savetxt(os.path.join(data_dir, str(int(self.data[0,0])) + "_" + self.wearLocation + ".txt"), self.rawData, delimiter=',', header='timestamp, accel_x, accel_y, accel_z, gyro_x, gyro_y, gyro_z')
 
     def clear(self):
         # variable initialization

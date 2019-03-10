@@ -9,8 +9,8 @@ from sys import argv
 import os
 
 
-seconds_to_stream = 10
-filename = "20190309-battery-test.txt"
+seconds_to_stream = 30
+filename = "20190309-gyro-test.txt"
 data_folder_name = "../../data/MetaMotion"
 
 
@@ -75,9 +75,9 @@ for s in states:
 for s in states:
     s.start()
 
-# sleep(seconds_to_stream)
-while(True):
-    pass
+sleep(seconds_to_stream)
+# while(True):
+    # pass
 
 print("Resetting devices")
 events = []

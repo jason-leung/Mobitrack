@@ -16,7 +16,7 @@ class State:
 
     def data_handler(self, ctx, data):
         values = parse_value(data, n_elem = 2)
-        print("acc: (%.4f,%.4f,%.4f), gyro; (%.4f,%.4f,%.4f)" % (values[0].x, values[0].y, values[0].z, values[1].x, values[1].y, values[1].z))
+        print("acc: (%.4f,%.4f,%.4f), gyro: (%.4f,%.4f,%.4f)" % (values[0].x, values[0].y, values[0].z, values[1].x, values[1].y, values[1].z))
 
     def setup(self):
         libmetawear.mbl_mw_settings_set_connection_parameters(self.device.board, 7.5, 7.5, 0, 6000)
