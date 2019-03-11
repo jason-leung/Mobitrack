@@ -3,6 +3,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from datetime import datetime
 import os
+import math
 
 import mysql.connector
 import uuid
@@ -18,6 +19,8 @@ class Mobitrack:
         self.smoothData = np.empty((0,7)) # time, ax, ay, az, gx, gy, gz
         self.data_accel = np.empty((0,3)) # time, pitch, roll
         self.data_gyro = np.empty((0,3)) # time, pitch, roll
+        self.data_compl = np.empty((0,3)) # time, pitch, roll
+
         self.numSamplesSeen = 0
         self.data_folder = ""
         
@@ -34,7 +37,8 @@ class Mobitrack:
         
         # preprocessing
         self.smoothWindowSize = self.frequency * 0.5 # window size for moving average filter (seconds)
-        self.complementaryFilterAlpha = 0.1
+        self.complementaryFilterAlpha = 0.9 # 1 is accel
+        self.max_allowed_acceleration = 0.2
         
         # peak detection
         self.last_pk = -1
@@ -54,6 +58,7 @@ class Mobitrack:
         # rep detection
         self.last_pkvl_is_rep = False
         self.minROM = 40
+        self.cross_thresh = 15 # degrees
         
         # exercise detection
         self.minRepsPerMin = 5
@@ -107,6 +112,7 @@ class Mobitrack:
         rotAngles = self.computeRotationAngles()
         self.data_accel = np.vstack((self.data_accel, rotAngles['accel']))
         self.data_gyro = np.vstack((self.data_gyro, rotAngles['gyro']))
+        self.data_compl = np.vstack((self.data_compl, rotAngles['compl']))
         
         # peak detection
         isPeak = self.detectPeaks()
@@ -164,7 +170,7 @@ class Mobitrack:
                 exercisePeriodStats = {
                     "timestamp": datetime.utcfromtimestamp(self.data_accel[self.currentExercisePeriodStartIdx, 0]).strftime('%Y-%m-%d %H:%M:%S'),
                     "numReps": self.currentExercisePeriodNumReps,
-                    "duration": duration
+                    "duration": int(duration)
                 }
 
                 # write exercise period to database
@@ -253,8 +259,13 @@ class Mobitrack:
         data = self.smoothData[-1,:]
         angle_est['accel'] = np.zeros(3)
         angle_est['gyro'] = np.zeros(3)
+        angle_est['compl'] = np.zeros(3)
         angle_est['accel'][0] = data[0]
         angle_est['gyro'][0] = data[0]
+        angle_est['compl'][0] = data[0]
+
+        sum_accel = abs(data[1]) + abs(data[2]) + abs(data[3]) - self.calibrationG
+        sum_accel = abs(math.sqrt((data[1])**2 + abs(data[2])**2 + abs(data[3])**2) - self.calibrationG)
         
         # estimate pitch and roll based on acceleration
         pitch_est_acc = np.rad2deg(np.arctan2(data[1], np.sqrt(data[2]**2 + data[3]**2))) # range [-90, 90]
@@ -275,11 +286,20 @@ class Mobitrack:
 
             angle_est['gyro'][1] = pitch_est_gyr
             angle_est['gyro'][2] = roll_est_gyr
+
+            pitch_for_compl_gyro_est = self.data_compl[-1,1] + dt * data[5]
+            roll_for_compl_gyro_est = self.data_compl[-1,2] + dt * data[4]
+
+            # If the acceleration can't be trusted because of extreme motion, use the gyro
+            if(sum_accel > self.max_allowed_acceleration*self.calibrationG):
+                angle_est['compl'][1] = pitch_for_compl_gyro_est
+                angle_est['compl'][2] = roll_for_compl_gyro_est
+            else:
+                # acceleration is acceptable so use the complementary filter
+                angle_est['compl'][1] = (1-self.complementaryFilterAlpha) * pitch_for_compl_gyro_est + self.complementaryFilterAlpha * pitch_est_acc
+                angle_est['compl'][2] = (1-self.complementaryFilterAlpha) * roll_for_compl_gyro_est + self.complementaryFilterAlpha * roll_est_acc
             
-            # complementary filter
-            # angle_est[1] = (1-self.complementaryFilterAlpha) * pitch_est_gyr + self.complementaryFilterAlpha * pitch_est_acc
-            # angle_est[2] = (1-self.complementaryFilterAlpha) * roll_est_gyr + self.complementaryFilterAlpha * roll_est_acc
-        
+    
         return angle_est
     
     def detectPeaks(self):
@@ -302,6 +322,38 @@ class Mobitrack:
                 return -1
         return 0
 
+    def getOpening(self, data):
+        # takes first half of data
+        # returns 1 if open down, -1 if open up
+        
+        data_min = min(data)
+        data_max = max(data)
+
+        if data[0] >= data[-1]:
+            if abs(data_min - data[-1]) >= self.cross_thresh:
+                print("pattern 5")
+                return -1
+            else:
+                if abs(data_max - data[0]) <= self.cross_thresh:
+                    print("pattern 4")
+                    return -1
+                else:
+                    print("pattern 3")
+                    return 1
+        else:
+            if abs(data_max - data[-1]) >= self.cross_thresh:
+                print("pattern 2")
+                return 1
+            else:
+                if abs(data_min - data[0]) <= self.cross_thresh:
+                    print("pattern 1")
+                    return 1
+                else:
+                    print("pattern 6")
+                    return -1
+
+        return 0
+
     def detectRepetition(self):
         # repetition detection, returns index if rep found, -1 otherwise
         if "arm" in self.wearLocation or "leg" in self.wearLocation:
@@ -309,28 +361,52 @@ class Mobitrack:
 
                 if not self.last_pkvl_is_rep:
                     last_pkvls = self.pkvl[-3:]
-                    # calculate ROM
-                    ROM = 0
-                    # up down up
-                    if( self.data_accel[last_pkvls[0],1] > self.data_accel[last_pkvls[1],1] and self.data_accel[last_pkvls[1],1] < self.data_accel[last_pkvls[2],1]):
-                        crossover_pt1 = min(self.data_accel[last_pkvls[0]:last_pkvls[1], 1])
-                        crossover_pt2 = min(self.data_accel[last_pkvls[1]:last_pkvls[2], 1])
-                        ROM_f = abs(self.data_accel[last_pkvls[0], 1] - crossover_pt1) + abs(self.data_accel[last_pkvls[1], 1] - crossover_pt1)
-                        ROM_b = abs(self.data_accel[last_pkvls[2], 1] - crossover_pt2) + abs(self.data_accel[last_pkvls[1], 1] - crossover_pt2)
-                        ROM = min(ROM_f, ROM_b)
-                    # down up down
-                    elif( self.data_accel[last_pkvls[0],1] < self.data_accel[last_pkvls[1],1] and self.data_accel[last_pkvls[1],1] > self.data_accel[last_pkvls[2],1]):
-                        crossover_pt1 = max(self.data_accel[last_pkvls[0]:last_pkvls[1], 1])
-                        crossover_pt2 = max(self.data_accel[last_pkvls[1]:last_pkvls[2], 1])
-                        ROM_f = abs(self.data_accel[last_pkvls[0], 1] - crossover_pt1) + abs(self.data_accel[last_pkvls[1], 1] - crossover_pt1)
-                        ROM_b = abs(self.data_accel[last_pkvls[2], 1] - crossover_pt2) + abs(self.data_accel[last_pkvls[1], 1] - crossover_pt2)
-                        ROM = min(ROM_f, ROM_b)
+                    last_pkvls_pitch = self.data_compl[last_pkvls, 1]
 
-                    # print("ROM:", round(ROM, 2))
+                    # calculate ROM
+                    ROM, ROM_f, ROM_b = 0, 0, 0
+                    segment_mean = np.mean(self.data_compl[last_pkvls[0]:last_pkvls[2], 1])
+                    crossover_angle = 90. if segment_mean >= 0 else -90.
+                    print("crossover_angle:", crossover_angle)
+                    # open up
+                    if( self.getOpening(self.data_compl[last_pkvls[0]:last_pkvls[1], 1]) == -1):
+                        crossover_pt1 = min(self.data_compl[last_pkvls[0]:last_pkvls[1], 1])
+                        crossover_pt2 = min(self.data_compl[last_pkvls[1]:last_pkvls[2], 1])
+                        crossover_amt1 = abs(crossover_pt1 - last_pkvls_pitch[1])
+                        crossover_amt2 = abs(crossover_pt2 - last_pkvls_pitch[1])
+                        if crossover_amt1 >= self.cross_thresh:
+                            ROM_f = abs(last_pkvls_pitch[0] - crossover_angle) + abs(last_pkvls_pitch[1] - crossover_angle)
+                        else:
+                            ROM_f = abs(last_pkvls_pitch[0] - last_pkvls_pitch[1])
+                        if crossover_amt2 >= self.cross_thresh:
+                            ROM_b = abs(last_pkvls_pitch[2] - crossover_angle) + abs(last_pkvls_pitch[1] - crossover_angle)
+                        else:
+                            ROM_b = abs(last_pkvls_pitch[2] - last_pkvls_pitch[1])
+                    # open down
+                    elif( self.getOpening(self.data_compl[last_pkvls[0]:last_pkvls[1], 1]) == 1 ):
+                        crossover_pt1 = max(self.data_compl[last_pkvls[0]:last_pkvls[1], 1])
+                        crossover_pt2 = max(self.data_compl[last_pkvls[1]:last_pkvls[2], 1])
+                        crossover_amt1 = abs(crossover_pt1  - last_pkvls_pitch[1])
+                        crossover_amt2 = abs(crossover_pt2 - last_pkvls_pitch[1])
+                        if crossover_amt1 >= self.cross_thresh:
+                            ROM_f = abs(last_pkvls_pitch[0] - crossover_angle) + abs(last_pkvls_pitch[1] - crossover_angle)
+                        else:
+
+                            ROM_f = abs(last_pkvls_pitch[0] - last_pkvls_pitch[1])
+                        if crossover_amt2 >= self.cross_thresh:
+
+                            ROM_b = abs(last_pkvls_pitch[2] - crossover_angle) + abs(last_pkvls_pitch[1] - crossover_angle)
+                        else:
+
+                            ROM_b = abs(last_pkvls_pitch[2] - last_pkvls_pitch[1])
+                        
+                    ROM = min(ROM_f, ROM_b)
+                    ROM_max = max(ROM_f, ROM_b)
+
 
                     if ROM >= self.minROM:
                         self.last_pkvl_is_rep = True
-                        print("ROM:", round(ROM, 2))
+                        print("ROM_rep:", round(ROM, 2))
                         return self.pkvl[-1]
                 self.last_pkvl_is_rep = False
         return -1
@@ -356,6 +432,30 @@ class Mobitrack:
         else:
             print("Directory " , data_dir ,  " already exists")
         plt.savefig(os.path.join(data_dir, str(int(self.data_accel[0,0])) + "_" + self.wearLocation + ".png"))
+        
+        plt.show()
+
+    def plotDataGyro(self):
+        plt.figure(figsize=(20,10))
+        
+        plt.plot(self.data_gyro[:,0], self.data_gyro[:,1] , label='Pitch')
+        plt.plot(self.data_gyro[:,0], self.data_gyro[:,2], label='Roll')
+        
+        plt.plot(self.data_gyro[self.peaks,0], self.data_gyro[self.peaks,1], 'yx', label='Peaks')
+        plt.plot(self.data_gyro[self.valleys,0], self.data_gyro[self.valleys,1], 'mx', label='Valleys')
+        plt.plot(self.data_gyro[self.reps,0], self.data_gyro[self.reps,1], 'g.', label='Reps')
+        
+        plt.xlabel('Time (s)')
+        plt.ylabel('Angle')
+        plt.legend()
+        
+        data_dir = os.path.join(self.data_folder, datetime.today().strftime('%Y-%m-%d'))
+        if not os.path.exists(data_dir):
+            os.mkdir(data_dir)
+            print("Directory " , data_dir ,  " created ")
+        else:
+            print("Directory " , data_dir ,  " already exists")
+        plt.savefig(os.path.join(data_dir, str(int(self.data_gyro[0,0])) + "_" + self.wearLocation + "_gyro.png"))
         
         plt.show()
 
