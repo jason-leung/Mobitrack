@@ -128,6 +128,7 @@ def startTracking(self, macAddress, location, patientID, led_on, target_angle):
         m.endSession()
         m.writeData()
         m.plotData()
+        m.plotDataGyro()
 
         state.stop()
 
