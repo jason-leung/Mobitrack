@@ -20,12 +20,14 @@ mycursor.execute("USE mobitrack")
 # Create a random data and insert it into wearing_session db
 sessionID = uuid.uuid4().hex[:16]
 patientID = uuid.uuid4().hex[:8]
+targetROM = random.randint(30, 45)
 locationList = ["left-upper-arm","left-lower-arm","right-upper-arm","right-lower-arm","left-upper-leg","left-lower-leg","right-upper-leg","right-lower-leg"]
 locationIndx = random.randint(0,len(locationList)-1)
 location = locationList[locationIndx] 
 timestamp = time.strftime('%Y-%m-%d %H:%M:%S')
-sql = "INSERT INTO database_wearingsession (SessionID, PatientID, Location, TimeStamp) VALUES (%s, %s, %s, %s)"
-val = (sessionID, patientID, location, timestamp)
+targetROM = random.randint(35,45)
+sql = "INSERT INTO database_wearingsession (SessionID, PatientID, TargetROM, Location, TimeStamp) VALUES (%s, %s, %s, %s, %s)"
+val = (sessionID, patientID, targetROM, location, timestamp)
 mycursor.execute(sql, val)
 db.commit()
 
@@ -37,7 +39,7 @@ for i in range(numPeriods):
 	duration = random.randint(50, 300) # Come back to this once the data type is decided
 	repetitions = random.randint(10,21)
 	periodTS = time.strftime('%Y-%m-%d %H:%M:%S')
-	sql = "INSERT INTO database_exerciseperiod (PeriodID, PatientID, SessionID_id, Duration, Repetitions, Timestamp) VALUES (%s, %s, %s, %s, %s, %s)"
-	val = (periodID, patientID, sessionID, duration, repetitions, periodTS)
+	sql = "INSERT INTO database_exerciseperiod (PeriodID, PatientID, TargetROM, SessionID_id, Duration, Repetitions, Timestamp) VALUES (%s, %s, %s, %s, %s, %s, %s)"
+	val = (periodID, patientID, targetROM, sessionID, duration, repetitions, periodTS)
 	mycursor.execute(sql, val)
 	db.commit()

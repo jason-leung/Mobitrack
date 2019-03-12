@@ -1,4 +1,4 @@
-// A stateless component for displaying data within a table in HomePage
+// A stateless component for displaying data within a table in HomePage (OUTDATED)
 import React from "react";
 import PropTypes from "prop-types";
 import key from "weak-key";

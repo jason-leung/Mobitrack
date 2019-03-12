@@ -26,6 +26,7 @@ mycursor.execute("CREATE TABLE IF NOT EXISTS database_wearingsession (" +
 				 "SessionID VARCHAR(16) PRIMARY KEY NOT NULL, " +
 				 "PatientID VARCHAR(8), " +
 				 "Location VARCHAR(20), " + 
+				 "TargetROM INT(11), " + 
 				 "TimeStamp TIMESTAMP ) " )
 				 
 # Create the exercise period table if it doesn't exist
@@ -35,4 +36,5 @@ mycursor.execute("CREATE TABLE IF NOT EXISTS database_exerciseperiod (" +
 				 "SessionID_id VARCHAR(16), " +
 				 "Duration VARCHAR(255), " +
 				 "Repetitions VARCHAR(20), " + 
+				 "TargetROM INT(11), " + 
 				 "TimeStamp TIMESTAMP )" )

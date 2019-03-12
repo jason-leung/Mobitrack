@@ -8,7 +8,7 @@ const columns = [
 	{
 		field: "PeriodID",
 		label: "Period ID",
-		sort: "asc"
+		sortable: false
 	},
 	{
 		field: "PatientID",
@@ -18,22 +18,27 @@ const columns = [
 	{
 		field: "Duration",
 		label: "Duration",
-		sort: "asc"
+		sortable: false
 	},
 	{
 		field: "Repetitions",
 		label: "Repetitions",
-		sort: "asc"
-	},	
+		sortable: false
+	},
+	{
+		field: "TargetROM",
+		label: "Target Range of Motion",
+		sortable: false
+	},
 	{
 		field: "Timestamp",
 		label: "Time Recorded",
-		sort: "asc"
+		sort: "asc",
 	},
 	{
 		field: "SessionID",
 		label: "Session ID",
-		sort: "asc"
+		sortable: false
 	}
 ];
 		
