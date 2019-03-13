@@ -16,6 +16,11 @@ const columns = [
 		sort: "asc"
 	},
 	{
+		field: "TargetROM",
+		label: "Target ROM",
+		sortable: false
+	},
+	{
 		field: "Duration",
 		label: "Duration",
 		sortable: false
@@ -23,11 +28,6 @@ const columns = [
 	{
 		field: "Repetitions",
 		label: "Repetitions",
-		sortable: false
-	},
-	{
-		field: "TargetROM",
-		label: "Target Range of Motion",
 		sortable: false
 	},
 	{
