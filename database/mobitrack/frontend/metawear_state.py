@@ -19,7 +19,8 @@ class State:
       self.led = False
       self.led_on_bool = False
       self.steps_since_led_on = 0
-      self.steps_to_keep_led_on = 30
+      self.steps_to_keep_led_on = 100
+
 
   def data_handler(self, ctx, data):
       values = parse_value(data, n_elem=2)
@@ -35,6 +36,7 @@ class State:
         libmetawear.mbl_mw_led_stop_and_clear(self.device.board)
         self.steps_since_led_on = 0
         self.led_on_bool = False
+        self.steps_to_keep_led_on = 30
 
       if self.led and status["isRep"] != -1: 
         # turn LED ON
@@ -64,12 +66,16 @@ class State:
       libmetawear.mbl_mw_datasignal_subscribe(self.processor, None, self.callback)
 
   def start(self):
-      if self.led: self.led_on(LedColor.GREEN, 2)
       libmetawear.mbl_mw_gyro_bmi160_enable_rotation_sampling(self.device.board)
       libmetawear.mbl_mw_acc_enable_acceleration_sampling(self.device.board)
 
       libmetawear.mbl_mw_gyro_bmi160_start(self.device.board)
       libmetawear.mbl_mw_acc_start(self.device.board)
+
+      if self.led:
+        self.led_on(LedColor.GREEN, 0, False)
+        self.led_on_bool = True
+        self.steps_since_led_on = 0
 
   def led_on(self, color, duration, clear=True):
     if(self.led):
@@ -81,4 +87,4 @@ class State:
       if clear: libmetawear.mbl_mw_led_stop_and_clear(self.device.board)
 
   def stop(self):
-    if(self.led): self.led_on(LedColor.RED, 2)
+    if(self.led): self.led_on(LedColor.RED, 1.5)
