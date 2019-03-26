@@ -65,6 +65,7 @@ class Mobitrack:
         # rep detection
         self.last_pkvl_is_rep = False
         self.minROM = 40
+        self.minROM_raw = 45
         self.cross_thresh = 15 # degrees
         self.min_rest_duration = self.frequency * 5
         
@@ -193,9 +194,9 @@ class Mobitrack:
                     )
                     mycursor = db.cursor()
                     mycursor.execute("USE mobitrack")
-                    sql = "INSERT INTO database_exerciseperiod (PeriodID, PatientID, SessionID_id, Duration, Repetitions, Timestamp) VALUES (%s, %s, %s, %s, %s, %s)"
+                    sql = "INSERT INTO database_exerciseperiod (PeriodID, PatientID, TargetROM, SessionID_id, Duration, Repetitions, Timestamp) VALUES (%s, %s, %s, %s, %s, %s, %s)"
                     periodID = uuid.uuid4().hex[:8]
-                    val = (periodID, self.patientID, self.sessionID, int(exercisePeriodStats['duration']), exercisePeriodStats['numReps'], exercisePeriodStats['timestamp'])
+                    val = (periodID, self.patientID, self.minROM_raw, self.sessionID, int(exercisePeriodStats['duration']), exercisePeriodStats['numReps'], exercisePeriodStats['timestamp'])
                     mycursor.execute(sql, val)
                     db.commit()
                     mycursor.close()
@@ -222,8 +223,8 @@ class Mobitrack:
             )
             mycursor = db.cursor()
             mycursor.execute("USE mobitrack")
-            sql = "INSERT INTO database_wearingsession (SessionID, PatientID, Location, TimeStamp) VALUES (%s, %s, %s, %s)"
-            val = (self.sessionID, self.patientID, self.wearLocation, exercisePeriodStats['timestamp'])
+            sql = "INSERT INTO database_wearingsession (SessionID, PatientID, TargetROM, Location, TimeStamp) VALUES (%s, %s, %s, %s, %s)"
+            val = (self.sessionID, self.patientID, self.minROM_raw, self.wearLocation, exercisePeriodStats['timestamp'])
             mycursor.execute(sql, val)
             db.commit()
             mycursor.close()

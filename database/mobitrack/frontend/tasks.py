@@ -83,6 +83,7 @@ def startTracking(self, macAddress, location, patientID, led_on, target_angle):
 
     minROM_slack = 5
     m.minROM = target_angle - minROM_slack
+    m.minROM_raw = target_angle
     if m.minROM <= 5.:
         min.ROM = 5.
     if m.minROM >= 120.:
