@@ -9,24 +9,9 @@ class WearingSession(models.Model):
 		
 	sessionID = models.CharField(max_length=16, primary_key=True)
 	patientID = models.CharField(max_length=8)
+	targetROM = models.IntegerField(null=True)
 	location = models.CharField(max_length=20)
 	timeStamp = models.DateTimeField('date published')
-	
-	def get_absolute_url(self):
-		return ('wearing_session_detail', (),
-				{
-					'slug': self.slug,
-				})
-	def save(self, *args, **kwargs):
-		if not self.slug:
-			self.slug = slugify(self.sessionID)
-		super(WearingSession, self).save(*args, **kwargs)
-		
-	class Meta:
-		ordering = ['timeStamp']
-		
-		def __unicode__(self):
-			return self.sessionID
 
 # Initialize schema for ExercisePeriod database
 class ExercisePeriod(models.Model):
@@ -34,7 +19,8 @@ class ExercisePeriod(models.Model):
 		return self.periodID
 		
 	periodID = models.CharField(max_length=8, primary_key=True)
-	patientID = models.CharField(max_length=8, default='12345678')
+	patientID = models.CharField(max_length=8)
+	targetROM = models.IntegerField(null=True)
 	sessionID = models.ForeignKey(WearingSession, on_delete=models.PROTECT)
 	duration = models.IntegerField()
 	repetitions = models.IntegerField()
