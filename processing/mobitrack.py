@@ -3,6 +3,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from datetime import datetime
 import os
+import math
 
 import mysql.connector
 import uuid
@@ -16,7 +17,10 @@ class Mobitrack:
         self.rawData = np.empty((0,7)) # time, ax, ay, az, gx, gy, gz
         self.calibratedData = np.empty((0,7)) # time, ax, ay, az, gx, gy, gz
         self.smoothData = np.empty((0,7)) # time, ax, ay, az, gx, gy, gz
-        self.data = np.empty((0,3)) # time, pitch, roll
+        self.data_accel = np.empty((0,3)) # time, pitch, roll
+        self.data_gyro = np.empty((0,3)) # time, pitch, roll
+        self.data_compl = np.empty((0,3)) # time, pitch, roll
+
         self.numSamplesSeen = 0
         self.data_folder = ""
         
@@ -33,7 +37,8 @@ class Mobitrack:
         
         # preprocessing
         self.smoothWindowSize = self.frequency * 0.5 # window size for moving average filter (seconds)
-        self.complementaryFilterAlpha = 0.1
+        self.complementaryFilterAlpha = 0.9 # 1 is accel
+        self.max_allowed_acceleration = 0.2
         
         # peak detection
         self.last_pk = -1
@@ -42,6 +47,13 @@ class Mobitrack:
         self.pkvl = np.empty(0,dtype=int)
         self.segments = np.empty(0,dtype=int)
         self.reps = np.empty(0,dtype=int)
+        self.pk_slope_diff_thresh = 45
+        self.vertical_thres_for_zero_slope = 5
+        self.min_slope_thres = 5
+        self.min_z_movement = 2 #m/s2
+        self.max_roll_movement = 1.5
+        self.last_reliable_roll = 0
+        self.rep_symmetry_ratio = 3
         
         # segmentation
         self.segmentWindow = self.frequency * 1 # seconds
@@ -53,6 +65,8 @@ class Mobitrack:
         # rep detection
         self.last_pkvl_is_rep = False
         self.minROM = 40
+        self.cross_thresh = 15 # degrees
+        self.min_rest_duration = self.frequency * 5
         
         # exercise detection
         self.minRepsPerMin = 5
@@ -78,14 +92,11 @@ class Mobitrack:
             "isRep": -1
         }
 
-        # print(data)
-
         # validate data
         if(len(data) != 7):
             print("Invalid data!")
             return status
         status["valid"] = True
-
 
         # get raw data
         if self.numSamplesSeen >= self.rawDataStorageWindowSize:
@@ -104,8 +115,12 @@ class Mobitrack:
         
         # compute angles
         if self.numSamplesSeen >= self.dataStorageWindowSize:
-            self.data = np.copy(self.data[1:])
-        self.data = np.vstack((self.data, self.computeRotationAngles()))
+            self.data_accel = np.copy(self.data_accel[1:])
+            self.data_gyro = np.copy(self.data_gyro[1:])
+        rotAngles = self.computeRotationAngles()
+        self.data_accel = np.vstack((self.data_accel, rotAngles['accel']))
+        self.data_gyro = np.vstack((self.data_gyro, rotAngles['gyro']))
+        self.data_compl = np.vstack((self.data_compl, rotAngles['compl']))
         
         # peak detection
         isPeak = self.detectPeaks()
@@ -128,15 +143,6 @@ class Mobitrack:
             self.pkvl = np.append(self.pkvl, self.numSamplesSeen - np.round(self.segmentWindow/2).astype(int))
             self.last_pk = self.numSamplesSeen - np.round(self.segmentWindow/2).astype(int)
         
-        # detect segments
-        # isSegment = -1
-        # if isPeak != 0: isSegment = self.detectSegment()
-        # status["isSegment"] = isSegment
-        # if isSegment != -1:
-        #     if len(self.segments) == self.eventStorageWindowSize:
-        #         self.segments = np.copy(self.segments[1:])
-        #     self.segments = np.append(self.segments, isSegment)
-        
         # detect repetitions
         isRep = -1
         if isPeak == 1 or isPeak == -1: isRep = self.detectRepetition()
@@ -145,7 +151,7 @@ class Mobitrack:
             if len(self.reps) == self.eventStorageWindowSize:
                 self.reps = np.copy(self.reps[1:])
             self.reps = np.append(self.reps, isRep)
-            print("idx:", isRep, " - Repetition Detected!")
+            print("Repetition Detected!")
             
         # detect exercise periods
         if isRep != -1:
@@ -163,20 +169,20 @@ class Mobitrack:
         return status
     
     def endPeriod(self):
-        exercisePeriodStats = {"timestamp": datetime.utcfromtimestamp(self.data[self.currentExercisePeriodStartIdx, 0]).strftime('%Y-%m-%d %H:%M:%S')}
+        exercisePeriodStats = {"timestamp": datetime.utcfromtimestamp(self.data_accel[self.currentExercisePeriodStartIdx, 0]).strftime('%Y-%m-%d %H:%M:%S')}
         if self.currentExercisePeriodNumReps > 0 and len(self.reps) > 0:
             duration = (self.reps[-1] - self.currentExercisePeriodStartIdx) / self.frequency
             repsPerMin = 0
             if duration > 0: repsPerMin = self.currentExercisePeriodNumReps / (duration / 60.0)
             if duration >= self.minExerciseDuration and self.currentExercisePeriodNumReps >= self.minRepsPerMin and repsPerMin > self.minRepsPerMin:
                 exercisePeriodStats = {
-                    "timestamp": datetime.utcfromtimestamp(self.data[self.currentExercisePeriodStartIdx, 0]).strftime('%Y-%m-%d %H:%M:%S'),
+                    "timestamp": datetime.utcfromtimestamp(self.data_accel[self.currentExercisePeriodStartIdx, 0]).strftime('%Y-%m-%d %H:%M:%S'),
                     "numReps": self.currentExercisePeriodNumReps,
-                    "duration": duration
+                    "duration": int(duration)
                 }
 
                 # write exercise period to database
-                print("Exericse Period Detected:", exercisePeriodStats)
+                # print("Exericse Period Detected:", exercisePeriodStats)
                 
                 try:
                     print("Writing exercise period to database")
@@ -254,34 +260,66 @@ class Mobitrack:
     
     def computeRotationAngles(self):
         # compute pitch and roll using complementary filter
+
+        angle_est = {}
         
         # initialize variables
         data = self.smoothData[-1,:]
-        angle_est = np.zeros(3)
-        angle_est[0] = data[0]
+        angle_est['accel'] = np.zeros(3)
+        angle_est['gyro'] = np.zeros(3)
+        angle_est['compl'] = np.zeros(3)
+        angle_est['accel'][0] = data[0]
+        angle_est['gyro'][0] = data[0]
+        angle_est['compl'][0] = data[0]
+
+        sum_accel = abs(data[1]) + abs(data[2]) + abs(data[3]) - self.calibrationG
+        sum_accel = abs(math.sqrt((data[1])**2 + abs(data[2])**2 + abs(data[3])**2) - self.calibrationG)
         
         # estimate pitch and roll based on acceleration
         pitch_est_acc = np.rad2deg(np.arctan2(data[1], np.sqrt(data[2]**2 + data[3]**2))) # range [-90, 90]
         roll_est_acc = np.rad2deg(np.arctan2(data[2], np.sqrt(data[1]**2 + data[3]**2))) # range [-90, 90]
+
+        angle_est['accel'][1] = pitch_est_acc
+        angle_est['accel'][2] = roll_est_acc
         
+        # estimate pitch and roll data based on gyroscope
         # use acceleration data only for first sample
         if(self.numSamplesSeen == 0):
-            print("first sample")
-            angle_est[1] = pitch_est_acc
-            angle_est[2] = roll_est_acc
-        # use complementary filter otherwise
+            angle_est['gyro'][1] = pitch_est_acc
+            angle_est['gyro'][2] = roll_est_acc
         else:
-            # estimate pitch and roll based on gyroscope
             dt = self.smoothData[-1,0] - self.smoothData[-2,0]
 
-            if dt > 0.15: print("dt:",dt)
-            pitch_est_gyr = self.data[-1,1] + dt * data[5]
-            roll_est_gyr = self.data[-1,2] + dt * data[4]
-            
-            # complementary filter
-            angle_est[1] = (1-self.complementaryFilterAlpha) * pitch_est_gyr + self.complementaryFilterAlpha * pitch_est_acc
-            angle_est[2] = (1-self.complementaryFilterAlpha) * roll_est_gyr + self.complementaryFilterAlpha * roll_est_acc
-        
+            # combine gy and gz depending on roll of device
+            sin_roll = abs(np.sin(np.deg2rad(self.last_reliable_roll)))
+            cos_roll = abs(np.cos(np.deg2rad(self.last_reliable_roll)))
+
+            rot_mat = np.matrix([cos_roll, sin_roll])
+            raw_gyro_est = np.matrix([data[5], data[6]])
+            corrected_pitch_est = rot_mat.dot(raw_gyro_est.T)
+
+            pitch_est_gyr = self.data_gyro[-1,1] + dt * corrected_pitch_est
+            roll_est_gyr = self.data_gyro[-1,2] + dt * data[4]
+
+            angle_est['gyro'][1] = pitch_est_gyr
+            angle_est['gyro'][2] = roll_est_gyr
+
+            pitch_for_compl_gyro_est = self.data_compl[-1,1] + dt * corrected_pitch_est
+            roll_for_compl_gyro_est = self.data_compl[-1,2] + dt * data[4]
+
+            # If the acceleration can't be trusted because of extreme motion, use the gyro
+            if(sum_accel > self.max_allowed_acceleration*self.calibrationG):
+                angle_est['compl'][1] = pitch_for_compl_gyro_est
+                angle_est['compl'][2] = roll_for_compl_gyro_est
+            else:
+                # Update roll estimate
+                # acceleration is acceptable so use the complementary filter
+                angle_est['compl'][1] = (1-self.complementaryFilterAlpha) * pitch_for_compl_gyro_est + self.complementaryFilterAlpha * pitch_est_acc
+                angle_est['compl'][2] = (1-self.complementaryFilterAlpha) * roll_for_compl_gyro_est + self.complementaryFilterAlpha * roll_est_acc
+                self.last_reliable_roll = angle_est['compl'][2]
+
+
+    
         return angle_est
     
     def detectPeaks(self):
@@ -291,9 +329,12 @@ class Mobitrack:
         if self.numSamplesSeen < self.segmentWindow: return 0
         
         # find center point
-        pitch = self.data[-self.segmentWindow:,1]
+
+        pitch = self.data_gyro[-self.segmentWindow:,1]
         center_idx = self.numSamplesSeen - np.round(self.segmentWindow/2).astype(int)
-        center = pitch[np.round(self.segmentWindow/2).astype(int)]
+        center_ind_in_pitch = int(len(pitch)/2)
+        center = pitch[center_ind_in_pitch]
+
         
         # check for min dist
         if (self.last_pk == -1) or (center_idx - self.last_pk) >= self.segmentMinPkDist:
@@ -302,85 +343,158 @@ class Mobitrack:
                 return 1
             elif center == np.min(pitch) and (np.max(pitch) - center) >= self.segmentPkThr:
                 return -1
-        return 0
-    
-    def detectSegment(self):
-        # segment detection, returns index if segment found, -1 otherwise
-        # if "arm" in self.wearLocation:
-        #     if len(self.peaks) >= 2 and len(self.valleys) >= 1:
-        #         if self.numSamplesSeen - np.round(self.segmentWindow/2).astype(int) == self.peaks[-1]:
-        #             if self.peaks[-1] > self.valleys[-1] and self.valleys[-1] > self.peaks[-2]:
-        #                 if (self.peaks[-1] - self.peaks[-2]) <= self.segmentMaxPk2PkDist:
-        #                     return self.peaks[-1]
-        # elif "leg" in self.wearLocation:
-        #     if len(self.peaks) >= 1 and len(self.valleys) >= 2:
-        #         if self.numSamplesSeen - np.round(self.segmentWindow/2).astype(int) == self.valleys[-1]:
-        #             if self.valleys[-1] > self.peaks[-1] and self.peaks[-1] > self.valleys[-2]:
-        #                 if (self.valleys[-1] - self.valleys[-2]) <= self.segmentMaxPk2PkDist:
-        #                     return self.valleys[-1]
 
-        if "arm" in self.wearLocation or "leg" in self.wearLocation:
-            if len(self.peaks) >= 1 and len(self.valleys) >= 2:
-                if self.numSamplesSeen - np.round(self.segmentWindow/2).astype(int) == self.valleys[-1]:
-                    if self.valleys[-1] > self.peaks[-1] and self.peaks[-1] > self.valleys[-2]:
-                        if (self.valleys[-1] - self.valleys[-2]) <= self.segmentMaxPk2PkDist:
-                            return self.valleys[-1]
-        return -1
-    
+            slope1 = center - np.mean(pitch[:center_ind_in_pitch])
+            slope2 = np.mean(pitch[center_ind_in_pitch:]) - center
+
+
+            if ((abs(slope1) < self.min_slope_thres and 
+            	abs(np.max(pitch[:center_ind_in_pitch])- np.min(pitch[:center_ind_in_pitch])) < self.vertical_thres_for_zero_slope) or
+                (abs(slope2) < self.min_slope_thres and
+				abs(np.max(pitch[center_ind_in_pitch:])- np.min(pitch[center_ind_in_pitch:])) < self.vertical_thres_for_zero_slope)):
+
+                if abs(slope2 - slope1) >= self.pk_slope_diff_thresh:
+                    # print("slopes:", slope1, ", ", slope2)
+                    if abs(center - np.max(pitch)) <= abs(center - np.min(pitch)):
+                        return 1
+                    else:
+                        return -1
+        return 0
+
+    def getOpening(self, data):
+        # takes first half of data
+        # returns 1 if open down, -1 if open up
+        
+        data_min = min(data)
+        data_max = max(data)
+
+        if data[0] >= data[-1]:
+            if abs(data_min - data[-1]) >= self.cross_thresh:
+                # print("pattern 5")
+                return -1
+            else:
+                if abs(data_max - data[0]) <= self.cross_thresh:
+                    # print("pattern 4")
+                    return -1
+                else:
+                    # print("pattern 3")
+                    return 1
+        else:
+            if abs(data_max - data[-1]) >= self.cross_thresh:
+                # print("pattern 2")
+                return 1
+            else:
+                if abs(data_min - data[0]) <= self.cross_thresh:
+                    # print("pattern 1")
+                    return 1
+                else:
+                    # print("pattern 6")
+                    return -1
+
+        return 0
+
     def detectRepetition(self):
         # repetition detection, returns index if rep found, -1 otherwise
-        # if "arm" in self.wearLocation:
-        #     if len(self.peaks) >= 2 and len(self.valleys) >= 1:
-        #         if self.numSamplesSeen - np.round(self.segmentWindow/2).astype(int) == self.peaks[-1]:
-        #             ROM_f = abs(self.data[self.peaks[-1],1] - self.data[self.valleys[-1],1])
-        #             ROM_b = abs(self.data[self.peaks[-2],1] - self.data[self.valleys[-1],1])
-        #             print("ROM:", round(min(ROM_f, ROM_b), 2))
-        #             if min(ROM_f, ROM_b) >= self.minROM:
-        #                 return self.peaks[-1]
-        # elif "leg" in self.wearLocation:
-        #     if len(self.peaks) >= 1 and len(self.valleys) >= 2:
-        #         if self.numSamplesSeen - np.round(self.segmentWindow/2).astype(int) == self.valleys[-1]:
-        #             ROM_f = abs(self.data[self.peaks[-1],1] - self.data[self.valleys[-1],1])
-        #             ROM_b = abs(self.data[self.peaks[-1],1] - self.data[self.valleys[-2],1])
-        #             print("ROM:", round(min(ROM_f, ROM_b), 2))
-        #             if min(ROM_f, ROM_b) >= self.minROM:
-        #                 return self.peaks[-1]
-
-        # if "arm" in self.wearLocation or "leg" in self.wearLocation:
-        #     if len(self.peaks) >= 1 and len(self.valleys) >= 2:
-        #         if self.numSamplesSeen - np.round(self.segmentWindow/2).astype(int) == self.valleys[-1]:
-        #             ROM_f = abs(self.data[self.peaks[-1],1] - self.data[self.valleys[-1],1])
-        #             ROM_b = abs(self.data[self.peaks[-1],1] - self.data[self.valleys[-2],1])
-        #             print("ROM:", round(min(ROM_f, ROM_b), 2))
-        #             if min(ROM_f, ROM_b) >= self.minROM:
-        #                 return self.peaks[-1]
-
         if "arm" in self.wearLocation or "leg" in self.wearLocation:
             if len(self.pkvl) >= 3:
-                ROM_f = abs(self.data[self.pkvl[-1],1] - self.data[self.pkvl[-2],1])
-                ROM_b = abs(self.data[self.pkvl[-2],1] - self.data[self.pkvl[-3],1])
-                print("ROM:", round(min(ROM_f, ROM_b), 2))
 
                 if not self.last_pkvl_is_rep:
-                    if min(ROM_f, ROM_b) >= self.minROM:
+                    last_pkvls = self.pkvl[-3:]
+                    last_pkvls_pitch = self.data_compl[last_pkvls, 1]
+
+                    # check for assymmetric rep
+                    duration1 = min((last_pkvls[1] - last_pkvls[0]), (last_pkvls[2] - last_pkvls[1]))
+                    duration2 = max((last_pkvls[1] - last_pkvls[0]), (last_pkvls[2] - last_pkvls[1]))
+
+                    duration_ratio = duration2 / duration1
+
+                    if (last_pkvls[-1] - last_pkvls[0]) > self.min_rest_duration and duration_ratio > self.rep_symmetry_ratio:
+                        # print("assymmetric rep", duration_ratio)
+                        return -1
+
+                    # check if the device was moved from the horizontal position by looking at the mean of the 
+                    # z acceleration in this segment
+                    z_accel = self.smoothData[last_pkvls[0]:last_pkvls[-1], 3]
+                    if (abs(abs(np.mean(z_accel)) - self.calibrationG) < self.min_z_movement):
+                        # print("NOT MOVING AGAINST GRAVITY")
+                        # print(np.mean(z_accel))
+                        return -1
+
+                    roll_data = self.data_compl[last_pkvls[0]:last_pkvls[-1], 2]
+
+
+                    # calculate ROM
+                    ROM, ROM_f, ROM_b = 0, 0, 0
+                    segment_mean = np.mean(self.data_compl[last_pkvls[0]:last_pkvls[2], 1])
+                    crossover_angle = 90. if segment_mean >= 0 else -90.
+                    # print("crossover_angle:", crossover_angle)
+                    # open up
+                    if( self.getOpening(self.data_compl[last_pkvls[0]:last_pkvls[1], 1]) == -1):
+                        crossover_pt1 = min(self.data_compl[last_pkvls[0]:last_pkvls[1], 1])
+                        crossover_pt2 = min(self.data_compl[last_pkvls[1]:last_pkvls[2], 1])
+                        crossover_amt1 = abs(crossover_pt1 - last_pkvls_pitch[1])
+                        crossover_amt2 = abs(crossover_pt2 - last_pkvls_pitch[1])
+                        if crossover_amt1 >= self.cross_thresh:
+                            ROM_f = abs(last_pkvls_pitch[0] - crossover_angle) + abs(last_pkvls_pitch[1] - crossover_angle)
+                        else:
+                            ROM_f = abs(last_pkvls_pitch[0] - last_pkvls_pitch[1])
+                        if crossover_amt2 >= self.cross_thresh:
+                            ROM_b = abs(last_pkvls_pitch[2] - crossover_angle) + abs(last_pkvls_pitch[1] - crossover_angle)
+                        else:
+                            ROM_b = abs(last_pkvls_pitch[2] - last_pkvls_pitch[1])
+                    # open down
+                    elif( self.getOpening(self.data_compl[last_pkvls[0]:last_pkvls[1], 1]) == 1 ):
+                        crossover_pt1 = max(self.data_compl[last_pkvls[0]:last_pkvls[1], 1])
+                        crossover_pt2 = max(self.data_compl[last_pkvls[1]:last_pkvls[2], 1])
+                        crossover_amt1 = abs(crossover_pt1  - last_pkvls_pitch[1])
+                        crossover_amt2 = abs(crossover_pt2 - last_pkvls_pitch[1])
+                        if crossover_amt1 >= self.cross_thresh:
+                            ROM_f = abs(last_pkvls_pitch[0] - crossover_angle) + abs(last_pkvls_pitch[1] - crossover_angle)
+                        else:
+
+                            ROM_f = abs(last_pkvls_pitch[0] - last_pkvls_pitch[1])
+                        if crossover_amt2 >= self.cross_thresh:
+
+                            ROM_b = abs(last_pkvls_pitch[2] - crossover_angle) + abs(last_pkvls_pitch[1] - crossover_angle)
+                        else:
+
+                            ROM_b = abs(last_pkvls_pitch[2] - last_pkvls_pitch[1])
+                        
+                    ROM = min(ROM_f, ROM_b)
+                    ROM_max = max(ROM_f, ROM_b)
+
+                    # print("ROM_rep:", round(ROM, 2))
+
+                    if abs(np.max(roll_data) - np.min(roll_data)) / ROM > self.max_roll_movement:
+                        # print("Reject roll magic")
+                        # print(abs(np.max(roll_data) - np.min(roll_data)) / ROM)
+                        return -1
+
+
+                    if ROM > 180.0:
+                        return -1
+                    if ROM >= self.minROM:
                         self.last_pkvl_is_rep = True
+                        # print("ROM_rep:", round(ROM, 2))
                         return self.pkvl[-1]
                 self.last_pkvl_is_rep = False
         return -1
     
-    def plotData(self):
-        plt.figure(figsize=(20,10))
-        
-        plt.plot(self.data[:,0], self.data[:,1] , label='Pitch')
-        plt.plot(self.data[:,0], self.data[:,2], label='Roll')
-        
-        plt.plot(self.data[self.peaks,0], self.data[self.peaks,1], 'yx', label='Peaks')
-        plt.plot(self.data[self.valleys,0], self.data[self.valleys,1], 'mx', label='Valleys')
-        plt.plot(self.data[self.reps,0], self.data[self.reps,1], 'g.', label='Reps')
-        
-        plt.xlabel('Time (s)')
-        plt.ylabel('Angle')
-        plt.legend()
+    def plotDataAccel(self):
+        fig, ax1 = plt.subplots(figsize=(20,10))
+        fig.suptitle('Repetition Detection on Pitch and Roll Angle Estimated from Acceleration', fontsize=30)
+
+        pitch = ax1.plot(self.data_accel[:,0], self.data_accel[:,1] , label='Pitch')
+        roll = ax1.plot(self.data_accel[:,0], self.data_accel[:,2] , label='Roll')
+        # pks = ax1.plot(self.data_accel[self.peaks,0], self.data_accel[self.peaks,1], 'yx', markersize=12, label='Peaks')
+        # vls = ax1.plot(self.data_accel[self.valleys,0], self.data_accel[self.valleys,1], 'mx', markersize=12, label='Valleys')
+        reps = ax1.plot(self.data_accel[self.reps,0], self.data_accel[self.reps,1], 'g.', markersize=12, label='Detected Repetitions')
+
+        ax1.set_xlabel('Time (s)', fontsize=25)
+        ax1.set_ylabel('Angle (degrees)', fontsize=25)
+
+        ax1.tick_params(axis='both', labelsize=20)
+        ax1.legend(loc=1, prop={'size': 15})
         
         data_dir = os.path.join(self.data_folder, datetime.today().strftime('%Y-%m-%d'))
         if not os.path.exists(data_dir):
@@ -388,23 +502,57 @@ class Mobitrack:
             print("Directory " , data_dir ,  " created ")
         else:
             print("Directory " , data_dir ,  " already exists")
-        plt.savefig(os.path.join(data_dir, str(int(self.data[0,0])) + "_" + self.wearLocation + ".png"))
+        plt.savefig(os.path.join(data_dir, str(int(self.data_accel[0,0])) + "_" + self.wearLocation + "_accel.png"))
         
-        plt.show()
+        # plt.show()
+
+    def plotDataGyro(self):
+        fig, ax1 = plt.subplots(figsize=(20,10))
+        fig.suptitle('Peak Detection on Pitch Angle Estimated from Angular Velocity', fontsize=30)
+
+        pitch = ax1.plot(self.data_gyro[:,0], self.data_gyro[:,1] , label='Pitch')
+        # roll = ax1.plot(self.data_gyro[:,0], self.data_gyro[:,2] , label='Roll')
+        pks = ax1.plot(self.data_gyro[self.peaks,0], self.data_gyro[self.peaks,1], 'yx', markersize=12, label='Peaks')
+        vls = ax1.plot(self.data_gyro[self.valleys,0], self.data_gyro[self.valleys,1], 'mx', markersize=12, label='Valleys')
+        # reps = ax1.plot(self.data_gyro[self.reps,0], self.data_gyro[self.reps,1], 'g.', markersize=12, label='Detected Repetitions')
+
+        ax1.set_xlabel('Time (s)', fontsize=25)
+        ax1.set_ylabel('Angle (degrees)', fontsize=25)
+
+        ax1.tick_params(axis='both', labelsize=20)
+        ax1.legend(loc=1, prop={'size': 15})
+        
+        data_dir = os.path.join(self.data_folder, datetime.today().strftime('%Y-%m-%d'))
+        if not os.path.exists(data_dir):
+            os.mkdir(data_dir)
+            print("Directory " , data_dir ,  " created ")
+        else:
+            print("Directory " , data_dir ,  " already exists")
+        plt.savefig(os.path.join(data_dir, str(int(self.data_gyro[0,0])) + "_" + self.wearLocation + "_gyro.png"))
+        
+        # plt.show()
 
     def plotRawData(self):
-        plt.figure(figsize=(20,10))
+        fig, ax1 = plt.subplots(figsize=(20,10))
+        fig.suptitle('Raw IMU Data', fontsize=30)
         
-        plt.plot(self.rawData[:,0], self.rawData[:,1], label='ax')
-        plt.plot(self.rawData[:,0], self.rawData[:,2], label='ay')
-        plt.plot(self.rawData[:,0], self.rawData[:,3], label='az')
-        plt.plot(self.rawData[:,0], self.rawData[:,4], label='gx')
-        plt.plot(self.rawData[:,0], self.rawData[:,5], label='gy')
-        plt.plot(self.rawData[:,0], self.rawData[:,6], label='gz')
-        
-        plt.xlabel('Time (s)')
-        plt.ylabel('Raw IMU Readings (a in g, g in deg/s)')
-        plt.legend()
+        ax = ax1.plot(self.rawData[:,0], self.rawData[:,1], 'r-', label='ax')
+        ay = ax1.plot(self.rawData[:,0], self.rawData[:,2], 'g-', label='ay')
+        az = ax1.plot(self.rawData[:,0], self.rawData[:,3], 'b-', label='az')
+        ax1.set_xlabel('Time (s)', fontsize=25)
+        ax1.set_ylabel('Acceleration (G)', fontsize=25)
+        ax1.tick_params(axis='both', labelsize=20)
+
+        ax2 = ax1.twinx()
+        gx = ax2.plot(self.rawData[:,0], self.rawData[:,4], 'c-', label='gx')
+        gy = ax2.plot(self.rawData[:,0], self.rawData[:,5], 'k-', label='gy')
+        gz = ax2.plot(self.rawData[:,0], self.rawData[:,6], 'm-', label='gz')
+        ax2.set_ylabel('Angular Velocity (degrees/second)', fontsize=25)
+        ax2.tick_params(axis='both', labelsize=20)
+
+        lns = ax+ay+az+gx+gy+gz
+        labs = [l.get_label() for l in lns]
+        ax1.legend(lns, labs, loc=0, prop={'size': 15})
         
         data_dir = os.path.join(self.data_folder, datetime.today().strftime('%Y-%m-%d'))
         if not os.path.exists(data_dir):
@@ -412,22 +560,31 @@ class Mobitrack:
             print("Directory " , data_dir ,  " created ")
         else:
             print("Directory " , data_dir ,  " already exists")
-        plt.savefig(os.path.join(data_dir, str(int(self.data[0,0])) + "_" + self.wearLocation + "_raw.png"))
+        plt.savefig(os.path.join(data_dir, str(int(self.data_accel[0,0])) + "_" + self.wearLocation + "_raw.png"))
         
         # plt.show()
         
     def plotSmoothData(self):
-        plt.figure(figsize=(20,10))
-        plt.plot(self.smoothData[:,0], self.smoothData[:,1], label='ax')
-        plt.plot(self.smoothData[:,0], self.smoothData[:,2], label='ay')
-        plt.plot(self.smoothData[:,0], self.smoothData[:,3], label='az')
-        plt.plot(self.smoothData[:,0], self.smoothData[:,4], label='gx')
-        plt.plot(self.smoothData[:,0], self.smoothData[:,5], label='gy')
-        plt.plot(self.smoothData[:,0], self.smoothData[:,6], label='gz')
+        fig, ax1 = plt.subplots(figsize=(20,10))
+        fig.suptitle('Filtered IMU Data', fontsize=30)
         
-        plt.xlabel('Time (s)')
-        plt.ylabel('Smoothed IMU Readings (a in m/s^2, g in rad/s)')
-        plt.legend()
+        ax = ax1.plot(self.smoothData[:,0], self.smoothData[:,1], 'r-', label='ax')
+        ay = ax1.plot(self.smoothData[:,0], self.smoothData[:,2], 'g-', label='ay')
+        az = ax1.plot(self.smoothData[:,0], self.smoothData[:,3], 'b-', label='az')
+        ax1.set_xlabel('Time (s)', fontsize=25)
+        ax1.set_ylabel('Acceleration (G)', fontsize=25)
+        ax1.tick_params(axis='both', labelsize=20)
+
+        ax2 = ax1.twinx()
+        gx = ax2.plot(self.smoothData[:,0], self.smoothData[:,4], 'c-', label='gx')
+        gy = ax2.plot(self.smoothData[:,0], self.smoothData[:,5], 'k-', label='gy')
+        gz = ax2.plot(self.smoothData[:,0], self.smoothData[:,6], 'm-', label='gz')
+        ax2.set_ylabel('Angular Velocity (degrees/second)', fontsize=25)
+        ax2.tick_params(axis='both', labelsize=20)
+
+        lns = ax+ay+az+gx+gy+gz
+        labs = [l.get_label() for l in lns]
+        ax1.legend(lns, labs, loc=0, prop={'size': 15})
         
         data_dir = os.path.join(self.data_folder, datetime.today().strftime('%Y-%m-%d'))
         if not os.path.exists(data_dir):
@@ -435,7 +592,7 @@ class Mobitrack:
             print("Directory " , data_dir ,  " created ")
         else:
             print("Directory " , data_dir ,  " already exists")
-        plt.savefig(os.path.join(data_dir, str(int(self.data[0,0])) + "_" + self.wearLocation + "_smooth.png"))
+        plt.savefig(os.path.join(data_dir, str(int(self.data_accel[0,0])) + "_" + self.wearLocation + "_smooth.png"))
         
         # plt.show()
 
@@ -448,13 +605,14 @@ class Mobitrack:
             print("Directory " , data_dir ,  " already exists")
 
         # Log data to file
-        np.savetxt(os.path.join(data_dir, str(int(self.data[0,0])) + "_" + self.wearLocation + ".txt"), self.rawData, delimiter=',', header='timestamp, accel_x, accel_y, accel_z, gyro_x, gyro_y, gyro_z')
+        np.savetxt(os.path.join(data_dir, str(int(self.data_accel[0,0])) + "_" + self.wearLocation + ".txt"), self.rawData, delimiter=',', header='timestamp, accel_x, accel_y, accel_z, gyro_x, gyro_y, gyro_z')
 
     def clear(self):
         # variable initialization
         self.rawData = np.empty((0,7)) # time, ax, ay, az, gx, gy, gz
         self.smoothData = np.empty((0,7)) # time, ax, ay, az, gx, gy, gz
-        self.data = np.empty((0,3)) # time, pitch, roll
+        self.data_accel = np.empty((0,3)) # time, pitch, roll
+        self.data_gyro = np.empty((0,3)) # time, pitch, roll
         self.numSamplesSeen = 0
         
         # peak detection

@@ -49,9 +49,9 @@ class Mobitrack:
         self.reps = np.empty(0,dtype=int)
         self.pk_slope_diff_thresh = 45
         self.vertical_thres_for_zero_slope = 5
-        self.min_slope_thres = 3
+        self.min_slope_thres = 5
         self.min_z_movement = 2 #m/s2
-        self.max_roll_movement = 100
+        self.max_roll_movement = 1.5
         self.last_reliable_roll = 0
         self.rep_symmetry_ratio = 3
         
@@ -182,7 +182,7 @@ class Mobitrack:
                 }
 
                 # write exercise period to database
-                print("Exericse Period Detected:", exercisePeriodStats)
+                # print("Exericse Period Detected:", exercisePeriodStats)
                 
                 try:
                     print("Writing exercise period to database")
@@ -349,12 +349,12 @@ class Mobitrack:
 
 
             if ((abs(slope1) < self.min_slope_thres and 
-            	abs(np.max(pitch[:center_ind_in_pitch])- np.min(pitch[:center_ind_in_pitch])) < self.vertical_thres_for_zero_slope) or
+                abs(np.max(pitch[:center_ind_in_pitch])- np.min(pitch[:center_ind_in_pitch])) < self.vertical_thres_for_zero_slope) or
                 (abs(slope2) < self.min_slope_thres and
-				abs(np.max(pitch[center_ind_in_pitch:])- np.min(pitch[center_ind_in_pitch:])) < self.vertical_thres_for_zero_slope)):
+                abs(np.max(pitch[center_ind_in_pitch:])- np.min(pitch[center_ind_in_pitch:])) < self.vertical_thres_for_zero_slope)):
 
                 if abs(slope2 - slope1) >= self.pk_slope_diff_thresh:
-                    print("slopes:", slope1, ", ", slope2)
+                    # print("slopes:", slope1, ", ", slope2)
                     if abs(center - np.max(pitch)) <= abs(center - np.min(pitch)):
                         return 1
                     else:
@@ -409,22 +409,18 @@ class Mobitrack:
                     duration_ratio = duration2 / duration1
 
                     if (last_pkvls[-1] - last_pkvls[0]) > self.min_rest_duration and duration_ratio > self.rep_symmetry_ratio:
-                        print("assymmetric rep", duration_ratio)
+                        # print("assymmetric rep", duration_ratio)
                         return -1
 
                     # check if the device was moved from the horizontal position by looking at the mean of the 
                     # z acceleration in this segment
                     z_accel = self.smoothData[last_pkvls[0]:last_pkvls[-1], 3]
                     if (abs(abs(np.mean(z_accel)) - self.calibrationG) < self.min_z_movement):
-                        print("NOT MOVING AGAINST GRAVITY")
-                        print(np.mean(z_accel))
+                        # print("NOT MOVING AGAINST GRAVITY")
+                        # print(np.mean(z_accel))
                         return -1
 
                     roll_data = self.data_compl[last_pkvls[0]:last_pkvls[-1], 2]
-
-                    if abs(np.max(roll_data) - np.min(roll_data)) > self.max_roll_movement:
-                        print("Reject roll magic")
-                        return -1
 
 
                     # calculate ROM
@@ -467,8 +463,16 @@ class Mobitrack:
                     ROM = min(ROM_f, ROM_b)
                     ROM_max = max(ROM_f, ROM_b)
 
-                    print("ROM_rep:", round(ROM, 2))
+                    # print("ROM_rep:", round(ROM, 2))
 
+                    if abs(np.max(roll_data) - np.min(roll_data)) / ROM > self.max_roll_movement:
+                        # print("Reject roll magic")
+                        # print(abs(np.max(roll_data) - np.min(roll_data)) / ROM)
+                        return -1
+
+
+                    if ROM > 180.0:
+                        return -1
                     if ROM >= self.minROM:
                         self.last_pkvl_is_rep = True
                         # print("ROM_rep:", round(ROM, 2))
@@ -477,20 +481,20 @@ class Mobitrack:
         return -1
     
     def plotDataAccel(self):
-        fig, ax1 = plt.subplots()
-        fig.suptitle('Pitch Angle and Repetition Detection Results')
+        fig, ax1 = plt.subplots(figsize=(20,10))
+        fig.suptitle('Repetition Detection on Pitch and Roll Angle Estimated from Acceleration', fontsize=30)
 
         pitch = ax1.plot(self.data_accel[:,0], self.data_accel[:,1] , label='Pitch')
         roll = ax1.plot(self.data_accel[:,0], self.data_accel[:,2] , label='Roll')
-        pks = ax1.plot(self.data_accel[self.peaks,0], self.data_accel[self.peaks,1], 'yx', label='Peaks')
-        vls = ax1.plot(self.data_accel[self.valleys,0], self.data_accel[self.valleys,1], 'mx', label='Valleys')
-        reps = ax1.plot(self.data_accel[self.reps,0], self.data_accel[self.reps,1], 'g.', label='Detected Repetitions')
+        # pks = ax1.plot(self.data_accel[self.peaks,0], self.data_accel[self.peaks,1], 'yx', markersize=12, label='Peaks')
+        # vls = ax1.plot(self.data_accel[self.valleys,0], self.data_accel[self.valleys,1], 'mx', markersize=12, label='Valleys')
+        reps = ax1.plot(self.data_accel[self.reps,0], self.data_accel[self.reps,1], 'g.', markersize=12, label='Detected Repetitions')
 
-        ax1.set_xlabel('Time (s)')
-        ax1.set_ylabel('Pitch Angle (degree)')
+        ax1.set_xlabel('Time (s)', fontsize=25)
+        ax1.set_ylabel('Angle (degrees)', fontsize=25)
 
-        # ax1.tick_params(axis='both')
-        ax1.legend(loc=0)
+        ax1.tick_params(axis='both', labelsize=20)
+        ax1.legend(loc=1, prop={'size': 15})
         
         data_dir = os.path.join(self.data_folder, datetime.today().strftime('%Y-%m-%d'))
         if not os.path.exists(data_dir):
@@ -498,25 +502,25 @@ class Mobitrack:
             print("Directory " , data_dir ,  " created ")
         else:
             print("Directory " , data_dir ,  " already exists")
-        plt.savefig(os.path.join(data_dir, str(int(self.data_accel[0,0])) + "_" + self.wearLocation + ".png"))
+        plt.savefig(os.path.join(data_dir, str(int(self.data_accel[0,0])) + "_" + self.wearLocation + "_accel.png"))
         
         # plt.show()
 
     def plotDataGyro(self):
-        fig, ax1 = plt.subplots()
-        fig.suptitle('Pitch Angle and Repetition Detection Results')
+        fig, ax1 = plt.subplots(figsize=(20,10))
+        fig.suptitle('Peak Detection on Pitch Angle Estimated from Angular Velocity', fontsize=30)
 
         pitch = ax1.plot(self.data_gyro[:,0], self.data_gyro[:,1] , label='Pitch')
-        roll = ax1.plot(self.data_gyro[:,0], self.data_gyro[:,2] , label='Roll')
-        pks = ax1.plot(self.data_gyro[self.peaks,0], self.data_gyro[self.peaks,1], 'yx', label='Peaks')
-        vls = ax1.plot(self.data_gyro[self.valleys,0], self.data_gyro[self.valleys,1], 'mx', label='Valleys')
-        reps = ax1.plot(self.data_gyro[self.reps,0], self.data_gyro[self.reps,1], 'g.', label='Detected Repetitions')
+        # roll = ax1.plot(self.data_gyro[:,0], self.data_gyro[:,2] , label='Roll')
+        pks = ax1.plot(self.data_gyro[self.peaks,0], self.data_gyro[self.peaks,1], 'yx', markersize=12, label='Peaks')
+        vls = ax1.plot(self.data_gyro[self.valleys,0], self.data_gyro[self.valleys,1], 'mx', markersize=12, label='Valleys')
+        # reps = ax1.plot(self.data_gyro[self.reps,0], self.data_gyro[self.reps,1], 'g.', markersize=12, label='Detected Repetitions')
 
-        ax1.set_xlabel('Time (s)')
-        ax1.set_ylabel('Pitch Angle (degree)')
+        ax1.set_xlabel('Time (s)', fontsize=25)
+        ax1.set_ylabel('Angle (degrees)', fontsize=25)
 
-        # ax1.tick_params(axis='both')
-        ax1.legend(loc=0)
+        ax1.tick_params(axis='both', labelsize=20)
+        ax1.legend(loc=1, prop={'size': 15})
         
         data_dir = os.path.join(self.data_folder, datetime.today().strftime('%Y-%m-%d'))
         if not os.path.exists(data_dir):
@@ -529,28 +533,26 @@ class Mobitrack:
         # plt.show()
 
     def plotRawData(self):
-        fig, ax1 = plt.subplots()
-        fig.suptitle('Raw IMU Data')
+        fig, ax1 = plt.subplots(figsize=(20,10))
+        fig.suptitle('Raw IMU Data', fontsize=30)
         
         ax = ax1.plot(self.rawData[:,0], self.rawData[:,1], 'r-', label='ax')
         ay = ax1.plot(self.rawData[:,0], self.rawData[:,2], 'g-', label='ay')
         az = ax1.plot(self.rawData[:,0], self.rawData[:,3], 'b-', label='az')
-        ax1.set_xlabel('Time (s)')
-        ax1.set_ylabel('Acceleration (G)')
-        # ax1.tick_params(axis='both')
-
-        ax1.legend(loc=0)
+        ax1.set_xlabel('Time (s)', fontsize=25)
+        ax1.set_ylabel('Acceleration (G)', fontsize=25)
+        ax1.tick_params(axis='both', labelsize=20)
 
         ax2 = ax1.twinx()
         gx = ax2.plot(self.rawData[:,0], self.rawData[:,4], 'c-', label='gx')
         gy = ax2.plot(self.rawData[:,0], self.rawData[:,5], 'k-', label='gy')
         gz = ax2.plot(self.rawData[:,0], self.rawData[:,6], 'm-', label='gz')
-        ax2.set_ylabel('Angular Velocity (degrees/second)')
-        ax2.tick_params(axis='both')
+        ax2.set_ylabel('Angular Velocity (degrees/second)', fontsize=25)
+        ax2.tick_params(axis='both', labelsize=20)
 
         lns = ax+ay+az+gx+gy+gz
         labs = [l.get_label() for l in lns]
-        ax1.legend(lns, labs, loc=0)
+        ax1.legend(lns, labs, loc=0, prop={'size': 15})
         
         data_dir = os.path.join(self.data_folder, datetime.today().strftime('%Y-%m-%d'))
         if not os.path.exists(data_dir):
@@ -563,27 +565,26 @@ class Mobitrack:
         # plt.show()
         
     def plotSmoothData(self):
-        fig, ax1 = plt.subplots()
-        fig.suptitle('Filtered IMU Data')
+        fig, ax1 = plt.subplots(figsize=(20,10))
+        fig.suptitle('Filtered IMU Data', fontsize=30)
         
         ax = ax1.plot(self.smoothData[:,0], self.smoothData[:,1], 'r-', label='ax')
         ay = ax1.plot(self.smoothData[:,0], self.smoothData[:,2], 'g-', label='ay')
         az = ax1.plot(self.smoothData[:,0], self.smoothData[:,3], 'b-', label='az')
-        ax1.set_xlabel('Time (s)')
-        ax1.set_ylabel('Acceleration (G)')
-        ax1.tick_params(axis='both')
-        ax1.legend(loc=0)
+        ax1.set_xlabel('Time (s)', fontsize=25)
+        ax1.set_ylabel('Acceleration (G)', fontsize=25)
+        ax1.tick_params(axis='both', labelsize=20)
 
         ax2 = ax1.twinx()
         gx = ax2.plot(self.smoothData[:,0], self.smoothData[:,4], 'c-', label='gx')
         gy = ax2.plot(self.smoothData[:,0], self.smoothData[:,5], 'k-', label='gy')
         gz = ax2.plot(self.smoothData[:,0], self.smoothData[:,6], 'm-', label='gz')
-        ax2.set_ylabel('Angular Velocity (degrees/second)')
-        # ax2.tick_params(axis='both')
+        ax2.set_ylabel('Angular Velocity (degrees/second)', fontsize=25)
+        ax2.tick_params(axis='both', labelsize=20)
 
         lns = ax+ay+az+gx+gy+gz
         labs = [l.get_label() for l in lns]
-        ax1.legend(lns, labs, loc=0)
+        ax1.legend(lns, labs, loc=0, prop={'size': 15})
         
         data_dir = os.path.join(self.data_folder, datetime.today().strftime('%Y-%m-%d'))
         if not os.path.exists(data_dir):
