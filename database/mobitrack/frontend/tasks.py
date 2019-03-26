@@ -125,18 +125,19 @@ def startTracking(self, macAddress, location, patientID, led_on, target_angle):
         self.update_state(state='DISCONNECTING')
         print("Disconnecting device")
 
-        m.endSession()
-        m.writeData()
-        m.plotData()
-        m.plotDataGyro()
-
         state.stop()
 
         event = Event()
-
         state.device.on_disconnect = lambda s: event.set()
         libmetawear.mbl_mw_debug_reset(state.device.board)
         event.wait()
+
+        m.endSession()
+        m.writeData()
+        m.plotDataAccel()
+        m.plotDataGyro()
+        m.plotRawData()
+        m.plotSmoothData()
 
         self.update_state(state='DISCONNECTED')
         print("Disconnected")
