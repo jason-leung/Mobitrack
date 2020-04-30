@@ -26,7 +26,7 @@
   },
   "dependencies": {
     "@trendmicro/react-sidenav": "^0.4.5",
-    "jquery": "^3.3.1",
+    "jquery": "^3.5.0",
     "mdbreact": "^4.11.0",
     "popper.js": "^1.14.7",
     "react-csv": "^1.1.1",
